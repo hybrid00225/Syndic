@@ -1,0 +1,43 @@
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { PrismaService } from '../../prisma/prisma.service';
+import { CoproprieteService } from '../copropriete/copropriete.service';
+import { CreateBatimentDto } from './dto/create-batiment.dto';
+import { UpdateBatimentDto } from './dto/update-batiment.dto';
+
+@Injectable()
+export class BatimentService {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly coproprietes: CoproprieteService,
+  ) {}
+
+  // RG-01 : un bâtiment doit appartenir à une copropriété existante.
+  async create(coproprieteId: string, dto: CreateBatimentDto) {
+    await this.coproprietes.ensureExists(coproprieteId);
+    return this.prisma.batiment.create({
+      data: { coproprieteId, nom: dto.nom },
+    });
+  }
+
+  findAll(coproprieteId: string) {
+    return this.prisma.batiment.findMany({
+      where: { coproprieteId },
+      orderBy: { nom: 'asc' },
+    });
+  }
+
+  async update(id: string, dto: UpdateBatimentDto) {
+    await this.ensureExists(id);
+    return this.prisma.batiment.update({ where: { id }, data: { ...dto } });
+  }
+
+  async ensureExists(id: string) {
+    const exists = await this.prisma.batiment.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+    if (!exists) {
+      throw new NotFoundException(`Bâtiment ${id} introuvable`);
+    }
+  }
+}

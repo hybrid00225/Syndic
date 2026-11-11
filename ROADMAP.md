@@ -27,7 +27,7 @@ Dernière mise à jour : 2026-11-11.
 
 | Statut | Étape |
 |---|---|
-| ⬜ | Module **Copropriétés / Bâtiments / Niveaux / Lots** |
+| ✅ | Module **Copropriétés / Bâtiments / Niveaux / Lots** (API backend + tests) — spec `docs/specs/01-patrimoine.md` |
 | ⬜ | Module **Copropriétaires** (personnes physiques/morales) |
 | ⬜ | **Détention de propriété M:N** (quote-part, nature de droit, dates) — pièce critique |
 | ⬜ | Module **Occupants / Locataires** |

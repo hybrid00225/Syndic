@@ -95,6 +95,7 @@ model Copropriete {
   id           String            @id @default(uuid())
   syndicId     String
   nom          String
+  pays         String // code ISO — pilote les règles juridiques de CETTE copropriété
   adresse      String?
   devise       String            @default("XOF")
   statut       CoproprieteStatut @default(EN_CREATION)

@@ -40,5 +40,13 @@
 - Lancer l'API en dev : `npm run api:dev`
 - Nouvelle migration : `npm run api:migrate`
 
+**Module 01 — Patrimoine (fait, session 1) :**
+- Spec `docs/specs/01-patrimoine.md` (9 règles de gestion RG-01→RG-09).
+- API NestJS : Copropriété / Bâtiment / Niveau / Lot (controllers + services + DTO validés class-validator).
+- Contrôles métier : RG-03 (référence lot unique → 409), RG-04 (bâtiment d'une autre copro → 400), RG-05 (cohérence niveau/bâtiment → 400), RG-06 (superficie ≥ 0), RG-07 (statut initial EN_CREATION).
+- **Ajout schéma** : champ `pays` sur `Copropriete` (migration `add_pays_copropriete`) — chaque copro porte son pays (règles juridiques par pays).
+- Tests : **8/8 verts** (unitaires services). Test E2E HTTP OK (copro → lot → doublon 409).
+- ⏳ Reste branché plus tard : AuditLog sur écritures (RG-09), dérivation `syndicId` depuis l'Auth (actuellement en body, TEMPORAIRE).
+
 **Prochaine étape :**
-- Implémenter **uniquement le 1er module : Patrimoine** (Copropriété → Bâtiment → Niveau → Lot) : spec dans `docs/specs/01-patrimoine.md`, puis API CRUD + validation + tests. Cycle Spec → Code → Tests → Revue.
+- Soit le **front** de ce module (écrans Patrimoine, Design System) ; soit le **module 02 Propriété** (`DetentionPropriete` M:N + Copropriétaires). À décider avec l'utilisateur.
