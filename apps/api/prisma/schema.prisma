@@ -108,6 +108,7 @@ model Copropriete {
   roles     UserCoproprieteRole[]
   cles      CleRepartition[]
   appels    AppelDeFonds[]
+  paiements Paiement[]
 
   @@index([syndicId])
 }
@@ -201,6 +202,7 @@ model Personne {
   contacts   Contact[]
   detentions DetentionPropriete[]
   lignesDues LigneAppelDeFonds[]  @relation("Redevable")
+  paiements  Paiement[]           @relation("Payeur")
 
   @@index([syndicId])
 }
@@ -355,11 +357,68 @@ model LigneAppelDeFonds {
   totalSnapshot    Int // total figé au calcul
   montant          BigInt // entier, unité de la devise
 
-  appel     AppelDeFonds @relation(fields: [appelId], references: [id])
-  poste     PosteAppel   @relation(fields: [posteId], references: [id])
-  lot       Lot          @relation(fields: [lotId], references: [id])
-  redevable Personne     @relation("Redevable", fields: [redevableId], references: [id])
+  appel        AppelDeFonds          @relation(fields: [appelId], references: [id])
+  poste        PosteAppel            @relation(fields: [posteId], references: [id])
+  lot          Lot                   @relation(fields: [lotId], references: [id])
+  redevable    Personne              @relation("Redevable", fields: [redevableId], references: [id])
+  affectations AffectationPaiement[]
 
   @@index([appelId])
   @@index([redevableId])
+}
+
+// =====================================================================
+// MODULE 05 — ENCAISSEMENTS & PAIEMENTS (paiement ≠ affectation)
+// =====================================================================
+
+enum MoyenPaiement {
+  ESPECES
+  CHEQUE
+  VIREMENT
+  CARTE
+  MOBILE_MONEY
+  PRELEVEMENT
+  EN_LIGNE
+}
+
+enum PaiementStatut {
+  EN_ATTENTE
+  VALIDE
+  REJETE
+  ANNULE
+}
+
+// Un paiement REÇU. Distinct de son affectation aux dettes (règle fondamentale).
+model Paiement {
+  id                String         @id @default(uuid())
+  coproprieteId     String
+  payeurId          String // peut être un tiers payant pour un copropriétaire
+  dateOperation     DateTime
+  montant           BigInt // entier, unité de la devise
+  moyen             MoyenPaiement
+  referenceBancaire String?
+  statut            PaiementStatut @default(VALIDE)
+  idempotencyKey    String?        @unique // anti double-comptage Mobile Money
+  createdAt         DateTime       @default(now())
+
+  copropriete  Copropriete           @relation(fields: [coproprieteId], references: [id])
+  payeur       Personne              @relation("Payeur", fields: [payeurId], references: [id])
+  affectations AffectationPaiement[]
+
+  @@index([coproprieteId])
+}
+
+// L'AFFECTATION : impute une partie d'un paiement à une ligne due. Opération séparée.
+model AffectationPaiement {
+  id             String   @id @default(uuid())
+  paiementId     String
+  ligneAppelId   String
+  montantAffecte BigInt // entier
+  createdAt      DateTime @default(now())
+
+  paiement   Paiement          @relation(fields: [paiementId], references: [id])
+  ligneAppel LigneAppelDeFonds @relation(fields: [ligneAppelId], references: [id])
+
+  @@index([paiementId])
+  @@index([ligneAppelId])
 }

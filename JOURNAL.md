@@ -73,6 +73,17 @@
 - **BigInt sérialisé en string** dans les réponses JSON (main.ts).
 - Tests : **47/47 verts** (+10 calcul). Smoke test E2E complet : 1 000 000 réparti 500k/150k/150k/200k (indivision incluse), relevé Koné = 700k, valider→409 au re-valider.
 
+**Module 05 — Encaissements & paiements (fait, session 1) :**
+- Spec `docs/specs/05-encaissements.md` (RG-30 → RG-37).
+- Schéma : `Paiement`, `AffectationPaiement` + enums (migration `add_paiement_affectation`).
+- Règle d'or **paiement ≠ affectation** : on enregistre un paiement, on l'affecte séparément à une/des ligne(s).
+- **Idempotence Mobile Money** : `idempotencyKey @unique` → re-notification renvoie le paiement existant (anti double-comptage), robuste aux courses (catch P2002).
+- Invariants : RG-34 (Σ affectations ≤ montant paiement, reste = avance), RG-35 (Σ affectations ≤ dû de la ligne), RG-36 (isolation copro), RG-37 (seul VALIDE affectable ; annuler retire les affectations).
+- Tests : **54/54 verts** (+7). Smoke E2E : idempotence (même id), 400 sur sur-affectation paiement et sur dette, avance de 20 000 conservée.
+
+**Le cycle financier complet du MVP tourne** : patrimoine → propriété → tantièmes → appels de fonds → encaissements/affectation.
+
 **Prochaine étape :**
-- Soit **slice PDF** du relevé d'appel (lib PDF + worker) ; soit module **05 — Encaissements & paiements** (Mobile Money, idempotence, affectation). 
-- **Dette technique à résorber bientôt** : brancher **Auth** (arrêter `syndicId` en body) + **AuditLog** (traçabilité), tous deux prévus mais pas encore faits.
+- Module **06 — Impayés & recouvrement** (liste des lignes à solde > 0, jours de retard, relances) — complète le MVP côté financier.
+- Ou **slice PDF** (relevé/reçu) ; ou le **front** (Design System).
+- **Dette technique prioritaire** : **Auth** (arrêter `syndicId` en body + RLS) et **AuditLog**.
