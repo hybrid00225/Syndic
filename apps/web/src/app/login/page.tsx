@@ -84,68 +84,127 @@ export default function LoginPage() {
   return (
     <div className="grid min-h-screen bg-[#0A0F0C] lg:grid-cols-2">
       {/* ---- Panneau marque (gauche) ---- */}
-      <div className="relative hidden overflow-hidden p-10 lg:flex lg:flex-col lg:justify-between xl:p-14">
+      <div className="relative hidden overflow-hidden p-10 lg:flex lg:flex-col lg:justify-center xl:p-14">
+        {/* Fonds : dégradé + halos + grille de points */}
         <div className="absolute inset-0 bg-gradient-to-br from-emerald-800 via-emerald-900 to-[#06120C]" />
         <div
           className="absolute inset-0"
           style={{
             backgroundImage:
-              'radial-gradient(520px 420px at 75% 15%, rgba(16,185,129,.35), transparent 70%), radial-gradient(420px 320px at 10% 95%, rgba(5,150,105,.25), transparent 70%)',
+              'radial-gradient(560px 460px at 80% 8%, rgba(16,185,129,.38), transparent 70%), radial-gradient(460px 360px at 5% 100%, rgba(5,150,105,.28), transparent 70%)',
           }}
         />
-        <div className="relative">
-          <Wordmark size="lg" onDark subtitle="Gestion de copropriété" />
-        </div>
+        <div
+          className="absolute inset-0 opacity-[0.5]"
+          style={{
+            backgroundImage:
+              'radial-gradient(circle at 1px 1px, rgba(255,255,255,.07) 1px, transparent 0)',
+            backgroundSize: '22px 22px',
+            maskImage:
+              'radial-gradient(70% 70% at 50% 40%, black, transparent)',
+          }}
+        />
 
-        <div className="relative">
-          <h1 className="max-w-md text-4xl font-semibold leading-[1.1] tracking-tight text-white">
-            Commencez avec Syndic Alpha.
+        <Wordmark
+          size="lg"
+          onDark
+          subtitle="Gestion de copropriété"
+          className="absolute left-10 top-10 xl:left-14 xl:top-12"
+        />
+
+        {/* Bloc central équilibré */}
+        <div className="relative max-w-lg">
+          <h1 className="text-[2.6rem] font-semibold leading-[1.08] tracking-tight text-white">
+            La copropriété,
+            <br />
+            juste au franc près.
           </h1>
           <p className="mt-3 max-w-sm text-emerald-100/70">
-            La copropriété claire et juste au franc près — pensée pour
-            l&apos;Afrique de l&apos;Ouest.
+            Lots, tantièmes, appels de fonds et recouvrement — maîtrisés,
+            tracés, pensés pour l&apos;Afrique de l&apos;Ouest.
           </p>
 
-          <div className="mt-8 grid max-w-lg gap-3 sm:grid-cols-3">
+          {/* Vignette produit flottante */}
+          <div className="relative mt-9 max-w-sm">
+            <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-5 shadow-2xl backdrop-blur">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-[11px] uppercase tracking-wider text-emerald-200/60">
+                    Recouvrement · T1 2026
+                  </p>
+                  <p className="mt-0.5 text-sm font-medium text-white">
+                    Résidence Les Palmiers
+                  </p>
+                </div>
+                <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-xs font-semibold text-emerald-300">
+                  72 %
+                </span>
+              </div>
+              <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/10">
+                <div className="h-full w-[72%] rounded-full bg-gradient-to-r from-emerald-400 to-emerald-300" />
+              </div>
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-[11px] text-white/45">Encaissé</p>
+                  <p className="nums text-sm font-semibold text-white">
+                    8 900 000
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[11px] text-white/45">Impayés</p>
+                  <p className="nums text-sm font-semibold text-amber-300">
+                    3 500 000
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* petit toast flottant */}
+            <div className="absolute -bottom-4 -right-3 flex items-center gap-2 rounded-xl border border-white/10 bg-[#0C1512]/90 px-3 py-2 shadow-xl backdrop-blur">
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-300">
+                <Check className="h-3.5 w-3.5" strokeWidth={3} />
+              </span>
+              <div className="leading-tight">
+                <p className="text-[11px] font-medium text-white">
+                  Paiement reçu
+                </p>
+                <p className="nums text-[11px] text-emerald-300">
+                  + 250 000 FCFA
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Étapes compactes */}
+          <div className="mt-12 flex flex-wrap gap-x-6 gap-y-2">
             {steps.map((s) => (
-              <div
-                key={s.n}
-                className={cn(
-                  'rounded-xl border p-3.5',
-                  s.n === 1
-                    ? 'border-transparent bg-white text-neutral-900'
-                    : 'border-white/10 bg-white/5 text-white/70',
-                )}
-              >
-                <div
+              <div key={s.n} className="flex items-center gap-2">
+                <span
                   className={cn(
-                    'flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold',
+                    'flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-semibold',
                     s.n === 1
-                      ? 'bg-emerald-600 text-white'
-                      : 'bg-white/10 text-white/70',
+                      ? 'bg-emerald-500 text-emerald-950'
+                      : 'bg-white/10 text-white/60',
                   )}
                 >
                   {s.n}
-                </div>
-                <p className="mt-2.5 text-sm font-medium leading-tight">
-                  {s.title}
-                </p>
-                <p
+                </span>
+                <span
                   className={cn(
-                    'mt-1 text-xs leading-tight',
-                    s.n === 1 ? 'text-neutral-500' : 'text-white/45',
+                    'text-sm',
+                    s.n === 1 ? 'font-medium text-white' : 'text-white/55',
                   )}
                 >
-                  {s.desc}
-                </p>
+                  {s.title}
+                </span>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="relative text-sm text-emerald-100/40">
-          © {new Date().getFullYear()} Syndic Alpha
-        </div>
+        <p className="absolute bottom-10 left-10 text-sm text-emerald-100/40 xl:left-14">
+          « Enfin un suivi clair, au franc près. » — Gestionnaire, Abidjan
+        </p>
       </div>
 
       {/* ---- Formulaire (droite) ---- */}
