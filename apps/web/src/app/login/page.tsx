@@ -8,15 +8,23 @@ import { Wordmark } from '@/components/wordmark';
 import { Spinner } from '@/components/ui/spinner';
 import { cn } from '@/lib/utils';
 
+// Liste internationale (le produit n'est pas restreint à une région).
 const PAYS = [
   ['CI', "Côte d'Ivoire"],
+  ['SN', 'Sénégal'],
+  ['CM', 'Cameroun'],
+  ['GA', 'Gabon'],
   ['BJ', 'Bénin'],
   ['BF', 'Burkina Faso'],
-  ['GA', 'Gabon'],
   ['ML', 'Mali'],
-  ['NE', 'Niger'],
-  ['SN', 'Sénégal'],
   ['TG', 'Togo'],
+  ['MA', 'Maroc'],
+  ['TN', 'Tunisie'],
+  ['FR', 'France'],
+  ['BE', 'Belgique'],
+  ['CH', 'Suisse'],
+  ['CA', 'Canada'],
+  ['Autre', 'Autre'],
 ];
 
 const steps = [
@@ -117,11 +125,11 @@ export default function LoginPage() {
           <h1 className="text-[2.6rem] font-semibold leading-[1.08] tracking-tight text-white">
             La copropriété,
             <br />
-            juste au franc près.
+            claire et maîtrisée.
           </h1>
           <p className="mt-3 max-w-sm text-emerald-100/70">
-            Lots, tantièmes, appels de fonds et recouvrement — maîtrisés,
-            tracés, pensés pour l&apos;Afrique de l&apos;Ouest.
+            Lots, tantièmes, appels de fonds et recouvrement — maîtrisés et
+            tracés, depuis un seul endroit.
           </p>
 
           {/* Vignette produit flottante */}
@@ -168,9 +176,7 @@ export default function LoginPage() {
                 <p className="text-[11px] font-medium text-white">
                   Paiement reçu
                 </p>
-                <p className="nums text-[11px] text-emerald-300">
-                  + 250 000 FCFA
-                </p>
+                <p className="nums text-[11px] text-emerald-300">+ 250 000</p>
               </div>
             </div>
           </div>
@@ -203,7 +209,7 @@ export default function LoginPage() {
         </div>
 
         <p className="absolute bottom-10 left-10 text-sm text-emerald-100/40 xl:left-14">
-          « Enfin un suivi clair, au franc près. » — Gestionnaire, Abidjan
+          « Enfin un suivi clair et juste. » — Gestionnaire de copropriété
         </p>
       </div>
 

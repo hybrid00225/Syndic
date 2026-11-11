@@ -1,7 +1,31 @@
 # Charte de design front — Syndic Alpha
 
 > **But** : un front de **qualité Dribbble/Pinterest**, avec un point de vue fort. Ce document est **contraignant** : toute UI doit le respecter. Objectif inverse absolu = « template SaaS généré par IA ».
-> Statut : 🟨 direction artistique à arrêter avec l'utilisateur (section 3). Les règles 1-2 sont définitives.
+
+## 0. Definition of Done — à appliquer D'OFFICE sur chaque écran (sans qu'on le demande)
+
+> Consolidé à partir des retours de l'utilisateur. Un dev UX senior **anticipe** tout ceci. Ne jamais livrer un écran sans l'avoir vérifié.
+
+**Composition / visuel**
+- [ ] **Pleine largeur**, jamais de contenu enfermé dans une colonne centrée `max-w-* mx-auto` (= look IA). Utiliser l'espace, composition **asymétrique** (contenu + rail).
+- [ ] Widgets **riches, pas « tout blanc »** : tuiles teintées, tuile héro pleine, chips d'icônes colorés, badges/tendances, accents. De la couleur et de la hiérarchie.
+- [ ] Aucun des **12 interdits** (§1) : pas de split violet, pas de logo-icône, pas de « tout centré », etc.
+- [ ] Lisible en **clair ET sombre**.
+
+**Affordances UX (réflexes senior, §3bis)**
+- [ ] Champs mot de passe → **œil afficher/masquer** ; connexion → **mot de passe oublié** + **se souvenir de moi**.
+- [ ] États **chargement / vide / erreur / succès** soignés. Jamais de **bouton mort** (feature sans backend → message honnête « bientôt »).
+- [ ] **Confirmations** pour actions destructives/irréversibles.
+- [ ] Navbar complète : **langue · thème (clair/sombre/système) · notifications · profil**. Sidebar : **repliable + filtre + menu utilisateur**.
+- [ ] Accessibilité : labels, `aria-label` sur boutons icône, focus visible, contrastes AA, clavier.
+
+**Positionnement produit (marché NON restreint)**
+- [ ] **Ne jamais restreindre le marché** : pas de « Afrique de l'Ouest », pas de **« franc » / « FCFA »** codés en dur. Le produit est **international, multi-pays, multi-devises** (devise par copropriété). Copie neutre, montants via `formatMontant(montant, devise)`.
+
+**Qualité FR**
+- [ ] Orthographe française correcte (accents), formats `fr-FR`.
+
+---
 
 ---
 
