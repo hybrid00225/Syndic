@@ -13,13 +13,15 @@ Dernière mise à jour : 2026-11-11.
 | Statut | Étape |
 |---|---|
 | ✅ | Initialiser le dépôt git |
-| 🟨 | Concevoir le modèle de données du cœur (`docs/data-model.md`) |
-| ⬜ | Mettre en place le monorepo (backend NestJS + web Next.js + packages partagés) |
-| ⬜ | Configurer PostgreSQL + Prisma + migrations |
+| ✅ | Concevoir le modèle de données du cœur (`docs/data-model.md`) — gelé |
+| ✅ | Mettre en place le monorepo (`apps/api` NestJS + npm workspaces) |
+| ✅ | PostgreSQL (Docker, port 5435) + Prisma + 1re migration (socle + patrimoine) |
 | ⬜ | Auth + RBAC multi-copropriété + RLS |
 | ⬜ | Design System de base (tokens, Tailwind, 1er composants) — qualité Dribbble/Pinterest |
 | ⬜ | Journal d'audit *append-only* (socle transversal) |
 | ⬜ | Multi-tenant (syndic_id + scoping copropriété) |
+
+> Web (Next.js) et packages partagés : ajoutés plus tard, quand on attaquera le front d'un module.
 
 ## Vague 1 — Cœur patrimonial (MVP, partie 1)
 

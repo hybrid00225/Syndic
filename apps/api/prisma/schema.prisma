@@ -1,0 +1,171 @@
+// Schéma Prisma — Syndic Alpha
+// Périmètre actuel : SOCLE + module PATRIMOINE uniquement.
+// Les autres modules (propriété, tantièmes, appels de fonds…) seront ajoutés
+// un par un. Conception d'ensemble : ../../../docs/data-model.md
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// =====================================================================
+// SOCLE — multi-tenant, utilisateurs, audit
+// =====================================================================
+
+model Syndic {
+  id        String   @id @default(uuid())
+  nom       String
+  pays      String // code ISO, pilote les règles juridiques paramétrables
+  devise    String   @default("XOF")
+  createdAt DateTime @default(now())
+
+  users        User[]
+  coproprietes Copropriete[]
+}
+
+model User {
+  id         String   @id @default(uuid())
+  syndicId   String
+  email      String   @unique
+  motDePasse String // hash (argon2) — ajouté avec le module Auth
+  nom        String
+  actif      Boolean  @default(true)
+  mfaActive  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  syndic Syndic                @relation(fields: [syndicId], references: [id])
+  roles  UserCoproprieteRole[]
+
+  @@index([syndicId])
+}
+
+enum RoleType {
+  ADMIN_SYNDIC
+  GESTIONNAIRE
+  COMPTABLE
+  CAISSIER
+}
+
+// RBAC : un utilisateur a un rôle DIFFÉRENT par copropriété (règle 23.3)
+model UserCoproprieteRole {
+  id            String   @id @default(uuid())
+  userId        String
+  coproprieteId String
+  role          RoleType
+
+  user        User        @relation(fields: [userId], references: [id])
+  copropriete Copropriete @relation(fields: [coproprieteId], references: [id])
+
+  @@unique([userId, coproprieteId, role])
+}
+
+// Journal d'audit append-only (aucun UPDATE/DELETE autorisé côté applicatif)
+model AuditLog {
+  id            String   @id @default(uuid())
+  syndicId      String
+  coproprieteId String?
+  userId        String?
+  entite        String // ex. "Copropriete"
+  entiteId      String
+  action        String // CREATE | UPDATE | VALIDATE | CANCEL ...
+  avant         Json?
+  apres         Json?
+  horodatage    DateTime @default(now())
+
+  @@index([entite, entiteId])
+  @@index([coproprieteId])
+}
+
+// =====================================================================
+// PATRIMOINE — copropriété → bâtiment → niveau → lot
+// =====================================================================
+
+enum CoproprieteStatut {
+  EN_CREATION
+  ACTIVE
+  INACTIVE
+  CLOTUREE
+}
+
+model Copropriete {
+  id           String            @id @default(uuid())
+  syndicId     String
+  nom          String
+  adresse      String?
+  devise       String            @default("XOF")
+  statut       CoproprieteStatut @default(EN_CREATION)
+  dateCreation DateTime          @default(now())
+
+  syndic    Syndic                @relation(fields: [syndicId], references: [id])
+  batiments Batiment[]
+  lots      Lot[]
+  roles     UserCoproprieteRole[]
+
+  @@index([syndicId])
+}
+
+model Batiment {
+  id            String @id @default(uuid())
+  coproprieteId String
+  nom           String // ex. "Bâtiment A", "Bloc 1"
+
+  copropriete Copropriete @relation(fields: [coproprieteId], references: [id])
+  niveaux     Niveau[]
+  lots        Lot[]
+
+  @@index([coproprieteId])
+}
+
+model Niveau {
+  id         String @id @default(uuid())
+  batimentId String
+  nom        String // ex. "RDC", "1er étage"
+  ordre      Int    @default(0)
+
+  batiment Batiment @relation(fields: [batimentId], references: [id])
+  lots     Lot[]
+
+  @@index([batimentId])
+}
+
+enum LotType {
+  APPARTEMENT
+  PARKING
+  CAVE
+  MAGASIN
+  BUREAU
+  ENTREPOT
+  AUTRE
+}
+
+enum LotStatut {
+  OCCUPE_PROPRIETAIRE
+  LOUE
+  VACANT
+  EN_TRAVAUX
+  INDISPONIBLE
+  VENDU
+}
+
+model Lot {
+  id            String    @id @default(uuid())
+  coproprieteId String
+  batimentId    String?
+  niveauId      String?
+  reference     String // identifiant unique DANS la copropriété (ex. "A101")
+  type          LotType
+  designation   String?
+  superficie    Decimal?  @db.Decimal(10, 2) // m² (surface, PAS de l'argent)
+  statut        LotStatut @default(VACANT)
+
+  copropriete Copropriete @relation(fields: [coproprieteId], references: [id])
+  batiment    Batiment?   @relation(fields: [batimentId], references: [id])
+  niveau      Niveau?     @relation(fields: [niveauId], references: [id])
+
+  @@unique([coproprieteId, reference])
+  @@index([coproprieteId])
+}

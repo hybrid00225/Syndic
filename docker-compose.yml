@@ -1,0 +1,22 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: syndic-alpha-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: syndic
+      POSTGRES_PASSWORD: syndic_dev_pwd
+      POSTGRES_DB: syndic_alpha
+    ports:
+      # Hôte 5435 : 5432/5433/5434 déjà pris par d'autres stacks (zenapi-v2, whatsapp-hub…)
+      - "5435:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U syndic -d syndic_alpha"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  pgdata:

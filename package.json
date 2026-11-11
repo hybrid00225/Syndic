@@ -1,0 +1,19 @@
+{
+  "name": "syndic-alpha",
+  "version": "0.1.0",
+  "private": true,
+  "description": "SaaS de gestion de syndic de copropriété — Afrique de l'Ouest",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "db:up": "docker compose up -d postgres",
+    "db:down": "docker compose down",
+    "db:logs": "docker compose logs -f postgres",
+    "api:dev": "npm run start:dev --workspace @syndic-alpha/api",
+    "api:build": "npm run build --workspace @syndic-alpha/api",
+    "api:migrate": "npm run prisma:migrate --workspace @syndic-alpha/api",
+    "api:generate": "npm run prisma:generate --workspace @syndic-alpha/api"
+  }
+}
