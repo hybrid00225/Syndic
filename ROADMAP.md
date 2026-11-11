@@ -1,0 +1,75 @@
+# Roadmap — ZenAPI
+
+> Feuille de route vivante, relue à chaque session. On avance **par vagues, un module à la fois**.
+> Cycle par module : **Spec → Données → Code → Tests → Revue**.
+> Légende : ⬜ à faire · 🟨 en cours · ✅ terminé
+
+Dernière mise à jour : 2026-11-11.
+
+---
+
+## Vague 0 — Socle (fondations)
+
+| Statut | Étape |
+|---|---|
+| 🟨 | Initialiser le dépôt git |
+| ⬜ | Mettre en place le monorepo (backend NestJS + web Next.js + packages partagés) |
+| ⬜ | Configurer PostgreSQL + Prisma + migrations |
+| ⬜ | Auth + RBAC multi-copropriété + RLS |
+| ⬜ | Design System de base (tokens, Tailwind, 1er composants) — qualité Dribbble/Pinterest |
+| ⬜ | Journal d'audit *append-only* (socle transversal) |
+| ⬜ | Multi-tenant (syndic_id + scoping copropriété) |
+
+## Vague 1 — Cœur patrimonial (MVP, partie 1)
+
+| Statut | Étape |
+|---|---|
+| ⬜ | Module **Copropriétés / Bâtiments / Niveaux / Lots** |
+| ⬜ | Module **Copropriétaires** (personnes physiques/morales) |
+| ⬜ | **Détention de propriété M:N** (quote-part, nature de droit, dates) — pièce critique |
+| ⬜ | Module **Occupants / Locataires** |
+
+## Vague 2 — Cœur financier (MVP, partie 2)
+
+| Statut | Étape |
+|---|---|
+| ⬜ | **Clés de répartition & tantièmes** (versionnés par période) |
+| ⬜ | **Budgets prévisionnels** |
+| ⬜ | **Appels de fonds** (génération, calcul par lot, PDF) |
+| ⬜ | **Encaissements & paiements** (dont Mobile Money, idempotence) |
+| ⬜ | **Impayés & recouvrement** (relances) |
+
+## Vague 3 — Comptabilité & clôtures
+
+| Statut | Étape |
+|---|---|
+| ⬜ | **Comptabilité OHADA** (partie double, journaux, grand livre, balance) |
+| ⬜ | **Trésorerie & banques** (rapprochement) |
+| ⬜ | **Factures fournisseurs & dépenses** |
+| ⬜ | **Exercices, clôtures & régularisations** |
+
+## Vagues suivantes (à ordonner plus tard)
+
+- Assemblées générales & votes · Conseil syndical
+- GMAO / maintenance & interventions · Équipements
+- Sinistres & assurances
+- Communications & notifications · Gestion documentaire
+- Demandes / réclamations / incidents
+- Mutations & changements de propriété
+- Revenus locatifs
+- **Couche plateforme SaaS** : CRM commercial, offres & abonnements, administration
+- **App mobile Expo** (déployée en parallèle une fois le cœur web stable)
+
+---
+
+## Décisions prises
+
+- Stack : **TypeScript** — NestJS (back) + Next.js (web) + Expo/React Native (mobile).
+- Architecture : monolithe modulaire event-driven. Voir [`ARCHITECTURE.md`](./ARCHITECTURE.md).
+- Design : qualité Dribbble/Pinterest, Design System dès le départ.
+
+## Questions ouvertes
+
+- Choix ORM définitif : Prisma vs TypeORM.
+- Périmètre exact du MVP (où s'arrête la 1re version livrable ?).
+- Fournisseurs Mobile Money / SMS / hébergement.
