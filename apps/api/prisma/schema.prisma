@@ -107,6 +107,7 @@ model Copropriete {
   lots      Lot[]
   roles     UserCoproprieteRole[]
   cles      CleRepartition[]
+  appels    AppelDeFonds[]
 
   @@index([syndicId])
 }
@@ -170,6 +171,7 @@ model Lot {
   niveau      Niveau?              @relation(fields: [niveauId], references: [id])
   detentions  DetentionPropriete[]
   tantiemes   Tantieme[]
+  lignesAppel LigneAppelDeFonds[]
 
   @@unique([coproprieteId, reference])
   @@index([coproprieteId])
@@ -198,6 +200,7 @@ model Personne {
   syndic     Syndic               @relation(fields: [syndicId], references: [id])
   contacts   Contact[]
   detentions DetentionPropriete[]
+  lignesDues LigneAppelDeFonds[]  @relation("Redevable")
 
   @@index([syndicId])
 }
@@ -277,6 +280,7 @@ model CleRepartitionVersion {
 
   cle       CleRepartition @relation(fields: [cleId], references: [id])
   tantiemes Tantieme[]
+  postes    PosteAppel[]
 
   @@index([cleId, dateEffet])
 }
@@ -291,4 +295,71 @@ model Tantieme {
   lot     Lot                   @relation(fields: [lotId], references: [id])
 
   @@unique([versionId, lotId])
+}
+
+// =====================================================================
+// MODULE 04 — APPELS DE FONDS (génération + calcul par lot et redevable)
+// =====================================================================
+
+enum AppelType {
+  ORDINAIRE
+  EXCEPTIONNEL
+}
+
+enum AppelStatut {
+  BROUILLON
+  VALIDE
+  ANNULE
+}
+
+model AppelDeFonds {
+  id            String      @id @default(uuid())
+  coproprieteId String
+  numero        String // unique dans la copropriété (ex. AF-2026-0001)
+  type          AppelType   @default(ORDINAIRE)
+  motif         String
+  dateEmission  DateTime    @default(now())
+  dateEcheance  DateTime
+  statut        AppelStatut @default(BROUILLON)
+
+  copropriete Copropriete         @relation(fields: [coproprieteId], references: [id])
+  postes      PosteAppel[]
+  lignes      LigneAppelDeFonds[]
+
+  @@unique([coproprieteId, numero])
+  @@index([coproprieteId])
+}
+
+// Un poste = une clé (version) + un montant à répartir sur son périmètre.
+model PosteAppel {
+  id               String @id @default(uuid())
+  appelId          String
+  cleVersionId     String
+  libelle          String
+  montantARepartir BigInt // entier, unité de la devise
+
+  appel      AppelDeFonds          @relation(fields: [appelId], references: [id])
+  cleVersion CleRepartitionVersion @relation(fields: [cleVersionId], references: [id])
+  lignes     LigneAppelDeFonds[]
+}
+
+// Une ligne = la part d'un redevable pour un lot et un poste.
+// FIGE les tantièmes utilisés (traçabilité). Montant entier.
+model LigneAppelDeFonds {
+  id               String @id @default(uuid())
+  appelId          String
+  posteId          String
+  lotId            String
+  redevableId      String // redevable à la date d'exigibilité (usufruitier si usufruit)
+  tantiemeSnapshot Int // tantièmes du lot figés au calcul
+  totalSnapshot    Int // total figé au calcul
+  montant          BigInt // entier, unité de la devise
+
+  appel     AppelDeFonds @relation(fields: [appelId], references: [id])
+  poste     PosteAppel   @relation(fields: [posteId], references: [id])
+  lot       Lot          @relation(fields: [lotId], references: [id])
+  redevable Personne     @relation("Redevable", fields: [redevableId], references: [id])
+
+  @@index([appelId])
+  @@index([redevableId])
 }

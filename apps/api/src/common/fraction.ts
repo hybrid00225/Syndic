@@ -36,6 +36,34 @@ export function sumExceedsOne(fractions: Fraction[]): boolean {
   return accNum > accDen;
 }
 
+/** PGCD (BigInt, valeurs positives). */
+export function gcd(a: bigint, b: bigint): bigint {
+  let x = a < 0n ? -a : a;
+  let y = b < 0n ? -b : b;
+  while (y) {
+    [x, y] = [y, x % y];
+  }
+  return x;
+}
+
+/** PPCM (BigInt). */
+export function lcm(a: bigint, b: bigint): bigint {
+  return (a / gcd(a, b)) * b;
+}
+
+/**
+ * Convertit une liste de fractions en poids ENTIERS comparables,
+ * en les ramenant au dénominateur commun (PPCM). Ex. [1/2, 1/3] → [3n, 2n].
+ * Sert à répartir la charge d'un lot entre ses détenteurs selon leurs quote-parts.
+ */
+export function fractionsToWeights(fractions: Fraction[]): bigint[] {
+  const denCommun = fractions.reduce(
+    (acc, f) => lcm(acc, BigInt(f.den)),
+    1n,
+  );
+  return fractions.map((f) => BigInt(f.num) * (denCommun / BigInt(f.den)));
+}
+
 /**
  * Deux intervalles [start, end) se chevauchent-ils ?
  * end = null signifie « ouvert » (en cours, +∞).

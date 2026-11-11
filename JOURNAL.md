@@ -65,6 +65,14 @@
 - Logique de **versioning** : créer une nouvelle version clôture la précédente (`dateFin`), pas de chevauchement ; total figé = somme (RG-19) ; isolation copropriété (RG-18) ; unicité lot (RG-20).
 - Tests : **38/38 verts** (+5 répartition, +6 version). Smoke test HTTP OK (v2 clôture v1, applicable?date renvoie la bonne version).
 
-**Prochaine étape (le gros morceau du MVP) :**
-- Module **04 — Appels de fonds** : génère les contributions par lot via les tantièmes (`repartir`), PDF, numéro unique, statuts. C'est l'aboutissement du cœur financier.
-- Avant : penser à brancher l'**AuditLog** et l'**Auth** (TODO transverses qui s'accumulent).
+**Module 04 — Appels de fonds (fait, session 1) :**
+- Spec `docs/specs/04-appels.md` (RG-24 → RG-29).
+- Schéma : `AppelDeFonds`, `PosteAppel`, `LigneAppelDeFonds` + enums (migration `add_appel_de_fonds`).
+- Calcul PUR `src/appels/appel-calcul.ts` : **double répartition** (montant → lots par tantièmes, puis part du lot → redevables par quote-parts), somme exacte. Helper `fractionsToWeights` (fractions → poids entiers via PPCM).
+- Service : version de clé applicable à `dateEmission`, redevables à `dateEcheance` (usufruitier prioritaire), génération en transaction, numéro `AF-<année>-<NNNN>`, statuts BROUILLON/VALIDE/ANNULE, relevé consolidé par copropriétaire.
+- **BigInt sérialisé en string** dans les réponses JSON (main.ts).
+- Tests : **47/47 verts** (+10 calcul). Smoke test E2E complet : 1 000 000 réparti 500k/150k/150k/200k (indivision incluse), relevé Koné = 700k, valider→409 au re-valider.
+
+**Prochaine étape :**
+- Soit **slice PDF** du relevé d'appel (lib PDF + worker) ; soit module **05 — Encaissements & paiements** (Mobile Money, idempotence, affectation). 
+- **Dette technique à résorber bientôt** : brancher **Auth** (arrêter `syndicId` en body) + **AuditLog** (traçabilité), tous deux prévus mais pas encore faits.

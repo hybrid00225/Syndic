@@ -2,6 +2,12 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 
+// Les montants sont des BigInt (entiers). JSON ne sait pas les sérialiser nativement :
+// on les rend sous forme de chaîne pour préserver l'exactitude (pas de perte de précision).
+(BigInt.prototype as unknown as { toJSON: () => string }).toJSON = function () {
+  return this.toString();
+};
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 

@@ -5,6 +5,7 @@ import { AppController } from './app.controller';
 import { PatrimoineModule } from './patrimoine/patrimoine.module';
 import { ProprieteModule } from './propriete/propriete.module';
 import { TantiemesModule } from './tantiemes/tantiemes.module';
+import { AppelsModule } from './appels/appels.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { TantiemesModule } from './tantiemes/tantiemes.module';
     PatrimoineModule,
     ProprieteModule,
     TantiemesModule,
+    AppelsModule,
     // Les prochains modules métier seront ajoutés ici, un par un.
   ],
   controllers: [AppController],

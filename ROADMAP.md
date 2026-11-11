@@ -38,7 +38,7 @@ Dernière mise à jour : 2026-11-11.
 |---|---|
 | ✅ | **Clés de répartition & tantièmes** (versionnés par période) — spec `docs/specs/03-tantiemes.md` |
 | ⬜ | **Budgets prévisionnels** |
-| ⬜ | **Appels de fonds** (génération, calcul par lot, PDF) |
+| ✅ | **Appels de fonds** (génération, calcul par lot/redevable, relevé consolidé) — spec `docs/specs/04-appels.md` · _PDF = slice à venir_ |
 | ⬜ | **Encaissements & paiements** (dont Mobile Money, idempotence) |
 | ⬜ | **Impayés & recouvrement** (relances) |
 

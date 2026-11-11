@@ -5,7 +5,7 @@
 
 export interface PartTantieme {
   id: string; // identifiant du lot (ou de la ligne)
-  tantieme: number; // tantièmes du lot pour cette clé
+  tantieme: number | bigint; // tantièmes / poids pour la répartition
 }
 
 export interface Allocation {
