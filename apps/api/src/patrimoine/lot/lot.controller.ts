@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseUUIDPipe,
@@ -41,5 +42,10 @@ export class LotController {
   @Patch('lots/:id')
   update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateLotDto) {
     return this.service.update(id, dto);
+  }
+
+  @Delete('lots/:id')
+  remove(@Param('id', ParseUUIDPipe) id: string) {
+    return this.service.remove(id);
   }
 }

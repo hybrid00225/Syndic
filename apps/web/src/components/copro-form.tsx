@@ -6,6 +6,7 @@ import { Building2, MapPin, Wallet, FileText } from 'lucide-react';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
+import { SearchSelect } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
 import {
   PAYS,
@@ -14,7 +15,6 @@ import {
   NATURE_SYNDIC,
   DEVISES,
 } from '@/lib/constants';
-import { cn } from '@/lib/utils';
 
 export interface CoproValues {
   nom: string;
@@ -43,9 +43,6 @@ const EMPTY: CoproValues = {
   dateMiseExploitation: '',
   statut: 'EN_CREATION',
 };
-
-const ctrl =
-  'flex h-10 w-full rounded-lg border border-input bg-card px-3 text-sm focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30';
 
 export function CoproForm({
   initial,
@@ -122,17 +119,7 @@ export function CoproForm({
         </div>
         <div>
           <Label>Type</Label>
-          <select
-            className={cn(ctrl, 'cursor-pointer')}
-            value={form.type}
-            onChange={(e) => set('type', e.target.value)}
-          >
-            {TYPES_COPRO.map(([c, l]) => (
-              <option key={c} value={c}>
-                {l}
-              </option>
-            ))}
-          </select>
+          <SearchSelect value={form.type} onChange={(v) => set('type', v)} options={TYPES_COPRO} />
         </div>
       </Section>
 
@@ -140,17 +127,7 @@ export function CoproForm({
       <Section icon={MapPin} title="Localisation" desc="Pays, adresse et rattachement.">
         <div>
           <Label>Pays *</Label>
-          <select
-            className={cn(ctrl, 'cursor-pointer')}
-            value={form.pays}
-            onChange={(e) => set('pays', e.target.value)}
-          >
-            {PAYS.map(([c, l]) => (
-              <option key={c} value={c}>
-                {l}
-              </option>
-            ))}
-          </select>
+          <SearchSelect value={form.pays} onChange={(v) => set('pays', v)} options={PAYS} />
         </div>
         <div>
           <Label>Ensemble immobilier / résidence</Label>
@@ -178,31 +155,15 @@ export function CoproForm({
       >
         <div>
           <Label>Devise</Label>
-          <select
-            className={cn(ctrl, 'cursor-pointer')}
-            value={form.devise}
-            onChange={(e) => set('devise', e.target.value)}
-          >
-            {DEVISES.map(([c, l]) => (
-              <option key={c} value={c}>
-                {l}
-              </option>
-            ))}
-          </select>
+          <SearchSelect value={form.devise} onChange={(v) => set('devise', v)} options={DEVISES} />
         </div>
         <div>
           <Label>Administration par un syndic</Label>
-          <select
-            className={cn(ctrl, 'cursor-pointer')}
+          <SearchSelect
             value={form.natureSyndic}
-            onChange={(e) => set('natureSyndic', e.target.value)}
-          >
-            {NATURE_SYNDIC.map(([c, l]) => (
-              <option key={c} value={c}>
-                {l}
-              </option>
-            ))}
-          </select>
+            onChange={(v) => set('natureSyndic', v)}
+            options={NATURE_SYNDIC}
+          />
         </div>
         <div>
           <Label>Date de mise en exploitation</Label>
@@ -215,17 +176,11 @@ export function CoproForm({
         {mode === 'edit' && (
           <div>
             <Label>Statut</Label>
-            <select
-              className={cn(ctrl, 'cursor-pointer')}
-              value={form.statut}
-              onChange={(e) => set('statut', e.target.value)}
-            >
-              {STATUTS_COPRO.map(([c, l]) => (
-                <option key={c} value={c}>
-                  {l}
-                </option>
-              ))}
-            </select>
+            <SearchSelect
+              value={form.statut ?? ''}
+              onChange={(v) => set('statut', v)}
+              options={STATUTS_COPRO}
+            />
           </div>
         )}
       </Section>

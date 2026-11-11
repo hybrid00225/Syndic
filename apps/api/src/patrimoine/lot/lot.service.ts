@@ -99,6 +99,24 @@ export class LotService {
     }
   }
 
+  async remove(id: string) {
+    await this.findOne(id);
+    try {
+      await this.prisma.lot.delete({ where: { id } });
+      return { id, supprime: true };
+    } catch (e) {
+      if (
+        e instanceof Prisma.PrismaClientKnownRequestError &&
+        e.code === 'P2003'
+      ) {
+        throw new ConflictException(
+          'Ce lot est référencé (propriété, tantièmes ou appels de fonds) et ne peut être supprimé.',
+        );
+      }
+      throw e;
+    }
+  }
+
   // Contrôles RG-04 et RG-05, factorisés pour create() et update().
   private async verifierCoherenceLocalisation(
     coproprieteId: string,

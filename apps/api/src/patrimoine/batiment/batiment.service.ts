@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CoproprieteService } from '../copropriete/copropriete.service';
 import { CreateBatimentDto } from './dto/create-batiment.dto';
@@ -29,6 +34,24 @@ export class BatimentService {
   async update(id: string, dto: UpdateBatimentDto) {
     await this.ensureExists(id);
     return this.prisma.batiment.update({ where: { id }, data: { ...dto } });
+  }
+
+  async remove(id: string) {
+    await this.ensureExists(id);
+    try {
+      await this.prisma.batiment.delete({ where: { id } });
+      return { id, supprime: true };
+    } catch (e) {
+      if (
+        e instanceof Prisma.PrismaClientKnownRequestError &&
+        e.code === 'P2003'
+      ) {
+        throw new ConflictException(
+          'Ce bâtiment contient des niveaux ou des lots : videz-le avant de le supprimer.',
+        );
+      }
+      throw e;
+    }
   }
 
   async ensureExists(id: string) {

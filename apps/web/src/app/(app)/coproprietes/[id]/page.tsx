@@ -23,6 +23,7 @@ import { StatTile } from '@/components/ui/stat-tile';
 import { useConfirm } from '@/components/ui/confirm';
 import { PageLoader } from '@/components/ui/spinner';
 import { PageHeader } from '@/components/page-header';
+import { BatimentsLots } from '@/components/batiments-lots';
 import { formatDate, STATUT_COPRO, cn } from '@/lib/utils';
 import { LABELS } from '@/lib/constants';
 
@@ -74,7 +75,15 @@ export default function CoproprieteDetailPage() {
   const confirm = useConfirm();
   const [copro, setCopro] = useState<Copropriete | null>(null);
   const [lots, setLots] = useState<Lot[]>([]);
-  const [tab, setTab] = useState<(typeof TABS)[number]['key']>('infos');
+  const [tab, setTab] = useState<(typeof TABS)[number]['key']>(() => {
+    if (typeof window !== 'undefined') {
+      const t = new URLSearchParams(window.location.search).get('tab');
+      if (t && TABS.some((x) => x.key === t)) {
+        return t as (typeof TABS)[number]['key'];
+      }
+    }
+    return 'infos';
+  });
 
   useEffect(() => {
     api<Copropriete>(`/coproprietes/${id}`).then(setCopro).catch(() => setCopro(null));
@@ -213,63 +222,7 @@ export default function CoproprieteDetailPage() {
         </div>
       )}
 
-      {tab === 'patrimoine' && (
-        <div className="grid gap-5 lg:grid-cols-2">
-          <Card className="p-5">
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold">Bâtiments ({copro.batiments.length})</h2>
-            </div>
-            {copro.batiments.length === 0 ? (
-              <EmptyBlock
-                icon={Building2}
-                title="Aucun bâtiment"
-                desc="La gestion des bâtiments arrive avec le module Patrimoine."
-              />
-            ) : (
-              <ul className="mt-3 space-y-2">
-                {copro.batiments.map((b) => (
-                  <li
-                    key={b.id}
-                    className="flex items-center gap-2.5 rounded-lg border border-border px-3 py-2 text-sm"
-                  >
-                    <Building2 className="h-4 w-4 text-muted-foreground" />
-                    {b.nom}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Card>
-
-          <Card className="p-5">
-            <h2 className="text-sm font-semibold">Lots ({lots.length})</h2>
-            {lots.length === 0 ? (
-              <EmptyBlock
-                icon={Home}
-                title="Aucun lot"
-                desc="Les lots (appartements, parkings…) s'afficheront ici."
-              />
-            ) : (
-              <ul className="mt-3 space-y-2">
-                {lots.slice(0, 8).map((l) => (
-                  <li
-                    key={l.id}
-                    className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-sm"
-                  >
-                    <span className="flex items-center gap-2.5">
-                      <Home className="h-4 w-4 text-muted-foreground" />
-                      {l.reference}
-                      <span className="text-xs text-muted-foreground">
-                        {LABELS[l.type] ?? l.type}
-                      </span>
-                    </span>
-                    <Badge tone="neutral">{l.statut.toLowerCase()}</Badge>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Card>
-        </div>
-      )}
+      {tab === 'patrimoine' && <BatimentsLots coproprieteId={id} />}
 
       {tab === 'coproprietaires' && (
         <ModuleAVenir
@@ -322,26 +275,6 @@ function SummaryRow({
       </span>
       <span className="font-medium">{value}</span>
     </li>
-  );
-}
-
-function EmptyBlock({
-  icon: Icon,
-  title,
-  desc,
-}: {
-  icon: typeof Home;
-  title: string;
-  desc: string;
-}) {
-  return (
-    <div className="flex flex-col items-center py-10 text-center">
-      <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-muted text-muted-foreground">
-        <Icon className="h-5 w-5" />
-      </div>
-      <p className="mt-3 text-sm font-medium">{title}</p>
-      <p className="mt-0.5 text-xs text-muted-foreground">{desc}</p>
-    </div>
   );
 }
 

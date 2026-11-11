@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseUUIDPipe,
@@ -34,5 +35,10 @@ export class BatimentController {
     @Body() dto: UpdateBatimentDto,
   ) {
     return this.service.update(id, dto);
+  }
+
+  @Delete('batiments/:id')
+  remove(@Param('id', ParseUUIDPipe) id: string) {
+    return this.service.remove(id);
   }
 }

@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseUUIDPipe,
@@ -31,5 +32,10 @@ export class NiveauController {
   @Patch('niveaux/:id')
   update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateNiveauDto) {
     return this.service.update(id, dto);
+  }
+
+  @Delete('niveaux/:id')
+  remove(@Param('id', ParseUUIDPipe) id: string) {
+    return this.service.remove(id);
   }
 }

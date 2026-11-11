@@ -28,6 +28,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { StatTile } from '@/components/ui/stat-tile';
+import { SearchSelect } from '@/components/ui/select';
 import { Tooltip } from '@/components/ui/tooltip';
 import { useConfirm } from '@/components/ui/confirm';
 import { PageLoader } from '@/components/ui/spinner';
@@ -52,8 +53,12 @@ const statutTone: Record<string, 'success' | 'warning' | 'neutral'> = {
   CLOTUREE: 'neutral',
 };
 
-const selectCls =
-  'h-9 rounded-lg border border-border bg-card px-2.5 text-sm text-foreground focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/25';
+const SORT_OPTIONS: [string, string][] = [
+  ['recent', 'Plus récentes'],
+  ['ancien', 'Plus anciennes'],
+  ['nom', 'Nom (A→Z)'],
+  ['nom-desc', 'Nom (Z→A)'],
+];
 
 const PAGE_SIZE = 8;
 
@@ -253,28 +258,28 @@ export default function CoproprietesPage() {
               className="h-9 w-full rounded-lg border border-border bg-background pl-8 pr-3 text-sm placeholder:text-muted-foreground/70 focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/25"
             />
           </div>
-          <select className={selectCls} value={statut} onChange={(e) => setStatut(e.target.value)}>
-            <option value="">Tous les statuts</option>
-            {STATUTS_COPRO.map(([c, l]) => (
-              <option key={c} value={c}>
-                {l}
-              </option>
-            ))}
-          </select>
-          <select className={selectCls} value={pays} onChange={(e) => setPays(e.target.value)}>
-            <option value="">Tous les pays</option>
-            {PAYS.map(([c, l]) => (
-              <option key={c} value={c}>
-                {l}
-              </option>
-            ))}
-          </select>
-          <select className={selectCls} value={sort} onChange={(e) => setSort(e.target.value)}>
-            <option value="recent">Plus récentes</option>
-            <option value="ancien">Plus anciennes</option>
-            <option value="nom">Nom (A→Z)</option>
-            <option value="nom-desc">Nom (Z→A)</option>
-          </select>
+          <SearchSelect
+            className="w-44"
+            value={statut}
+            onChange={setStatut}
+            options={STATUTS_COPRO}
+            allowEmpty
+            emptyLabel="Tous les statuts"
+          />
+          <SearchSelect
+            className="w-44"
+            value={pays}
+            onChange={setPays}
+            options={PAYS}
+            allowEmpty
+            emptyLabel="Tous les pays"
+          />
+          <SearchSelect
+            className="w-44"
+            value={sort}
+            onChange={setSort}
+            options={SORT_OPTIONS}
+          />
           {hasFilters && (
             <Tooltip label="Réinitialiser les filtres" side="bottom">
               <button

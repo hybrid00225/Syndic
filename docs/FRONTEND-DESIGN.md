@@ -38,6 +38,10 @@ Ordre imposé, de haut en bas :
 - **La plupart des formulaires = PAGES** dédiées (création/édition), pas des modals. Modal réservé aux formulaires **simples** (1-3 champs).
 - Chaque **suppression / enregistrement / modification / validation** → **popup `confirm()` customisé** indiquant l'**impact** + l'**étape suivante**.
 
+### Champs & selects
+- **Tous les `<select>` = `SearchSelect`** (combobox avec recherche) — jamais de select natif. Primitive `components/ui/select.tsx`.
+- Dates/nombres formatés, validations claires.
+
 ### Tooltips & onboarding
 - **Aucun bouton sans tooltip** (surtout les boutons icône) — composant `Tooltip`.
 - **Widgets** : tooltip explicatif de ce qu'ils montrent.

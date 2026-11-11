@@ -50,10 +50,56 @@ export const DEVISES: [string, string][] = [
   ['GBP', 'Livre sterling (GBP)'],
 ];
 
+// Domaine 2 — désignation du lot (règle 2.5).
+export const LOT_TYPES: [string, string][] = [
+  ['APPARTEMENT', 'Appartement'],
+  ['PARKING', 'Parking'],
+  ['CAVE', 'Cave'],
+  ['MAGASIN', 'Magasin'],
+  ['BUREAU', 'Bureau'],
+  ['ENTREPOT', 'Entrepôt'],
+  ['AUTRE', 'Autre'],
+];
+
+// Domaine 2 — statuts d'occupation du lot (règles 2.16 à 2.22).
+export const LOT_STATUTS: [string, string][] = [
+  ['VACANT', 'Vacant'],
+  ['OCCUPE_PROPRIETAIRE', 'Occupé par le propriétaire'],
+  ['LOUE', 'Loué'],
+  ['EN_TRAVAUX', 'En travaux'],
+  ['INDISPONIBLE', 'Indisponible'],
+  ['VENDU', 'Vendu'],
+];
+
+export const LOT_STATUT_TONE: Record<
+  string,
+  'success' | 'warning' | 'danger' | 'info' | 'neutral' | 'primary'
+> = {
+  OCCUPE_PROPRIETAIRE: 'success',
+  LOUE: 'info',
+  VACANT: 'neutral',
+  EN_TRAVAUX: 'warning',
+  INDISPONIBLE: 'warning',
+  VENDU: 'danger',
+};
+
 export const LABELS: Record<string, string> = {
   RESIDENTIEL: 'Résidentiel',
   COMMERCIAL: 'Commercial',
   MIXTE: 'Mixte',
   PROFESSIONNEL: 'Professionnel',
   BENEVOLE: 'Bénévole',
+  APPARTEMENT: 'Appartement',
+  PARKING: 'Parking',
+  CAVE: 'Cave',
+  MAGASIN: 'Magasin',
+  BUREAU: 'Bureau',
+  ENTREPOT: 'Entrepôt',
+  AUTRE: 'Autre',
+  VACANT: 'Vacant',
+  OCCUPE_PROPRIETAIRE: 'Occupé par le propriétaire',
+  LOUE: 'Loué',
+  EN_TRAVAUX: 'En travaux',
+  INDISPONIBLE: 'Indisponible',
+  VENDU: 'Vendu',
 };
