@@ -8,16 +8,11 @@ export class CoproprieteService {
   constructor(private readonly prisma: PrismaService) {}
 
   // RG-07 : création → statut initial EN_CREATION (défaut du schéma).
-  async create(dto: CreateCoproprieteDto) {
-    const syndic = await this.prisma.syndic.findUnique({
-      where: { id: dto.syndicId },
-    });
-    if (!syndic) {
-      throw new NotFoundException(`Syndic ${dto.syndicId} introuvable`);
-    }
+  // syndicId provient du token (garanti valide).
+  create(dto: CreateCoproprieteDto, syndicId: string) {
     return this.prisma.copropriete.create({
       data: {
-        syndicId: dto.syndicId,
+        syndicId,
         nom: dto.nom,
         pays: dto.pays,
         devise: dto.devise ?? 'XOF',

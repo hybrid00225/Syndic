@@ -1,5 +1,4 @@
 import { Test } from '@nestjs/testing';
-import { NotFoundException } from '@nestjs/common';
 import { CoproprieteService } from './copropriete.service';
 import { PrismaService } from '../../prisma/prisma.service';
 
@@ -11,7 +10,6 @@ describe('CoproprieteService', () => {
 
   beforeEach(async () => {
     prisma = {
-      syndic: { findUnique: jest.fn() },
       copropriete: {
         create: jest.fn(),
         findMany: jest.fn(),
@@ -30,21 +28,17 @@ describe('CoproprieteService', () => {
     service = moduleRef.get(CoproprieteService);
   });
 
-  it("refuse la création si le syndic n'existe pas (404)", async () => {
-    prisma.syndic.findUnique.mockResolvedValue(null);
-    await expect(
-      service.create({ nom: 'Résidence Alpha', pays: 'CI', syndicId: SYNDIC }),
-    ).rejects.toBeInstanceOf(NotFoundException);
-  });
-
-  it('applique la devise XOF par défaut', async () => {
-    prisma.syndic.findUnique.mockResolvedValue({ id: SYNDIC });
+  it('applique la devise XOF par défaut et le syndic du token', async () => {
     prisma.copropriete.create.mockResolvedValue({ id: 'c1' });
 
-    await service.create({ nom: 'Résidence Alpha', pays: 'CI', syndicId: SYNDIC });
+    await service.create({ nom: 'Résidence Alpha', pays: 'CI' } as any, SYNDIC);
 
     expect(prisma.copropriete.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({ devise: 'XOF', nom: 'Résidence Alpha' }),
+      data: expect.objectContaining({
+        devise: 'XOF',
+        nom: 'Résidence Alpha',
+        syndicId: SYNDIC,
+      }),
     });
   });
 });

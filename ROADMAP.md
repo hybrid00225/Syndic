@@ -16,10 +16,10 @@ Dernière mise à jour : 2026-11-11.
 | ✅ | Concevoir le modèle de données du cœur (`docs/data-model.md`) — gelé |
 | ✅ | Mettre en place le monorepo (`apps/api` NestJS + npm workspaces) |
 | ✅ | PostgreSQL (Docker, port 5435) + Prisma + 1re migration (socle + patrimoine) |
-| ⬜ | Auth + RBAC multi-copropriété + RLS |
+| ✅ | Auth (JWT + bcrypt) + RBAC (rôles/copro + admin syndic) — `syndicId` dérivé du token |
+| 🟨 | Isolation multi-tenant : TenantGuard sur `:coproprieteId` ✅ · _RLS PostgreSQL + isolation par id d'entité = à compléter_ |
 | ⬜ | Design System de base (tokens, Tailwind, 1er composants) — qualité Dribbble/Pinterest |
 | ⬜ | Journal d'audit *append-only* (socle transversal) |
-| ⬜ | Multi-tenant (syndic_id + scoping copropriété) |
 
 > Web (Next.js) et packages partagés : ajoutés plus tard, quand on attaquera le front d'un module.
 

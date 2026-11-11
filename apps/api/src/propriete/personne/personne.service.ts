@@ -14,19 +14,12 @@ import { CreateContactDto } from './dto/create-contact.dto';
 export class PersonneService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(dto: CreatePersonneDto) {
-    const syndic = await this.prisma.syndic.findUnique({
-      where: { id: dto.syndicId },
-      select: { id: true },
-    });
-    if (!syndic) {
-      throw new NotFoundException(`Syndic ${dto.syndicId} introuvable`);
-    }
+  async create(dto: CreatePersonneDto, syndicId: string) {
     (dto.contacts ?? []).forEach((c) => this.validerContact(c));
 
     return this.prisma.personne.create({
       data: {
-        syndicId: dto.syndicId,
+        syndicId,
         type: dto.type,
         nom: dto.nom,
         prenom: dto.prenom,

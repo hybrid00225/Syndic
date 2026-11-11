@@ -6,25 +6,26 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
-  Query,
 } from '@nestjs/common';
 import { PersonneService } from './personne.service';
 import { CreatePersonneDto } from './dto/create-personne.dto';
 import { UpdatePersonneDto } from './dto/update-personne.dto';
 import { CreateContactDto } from './dto/create-contact.dto';
+import { CurrentUser } from '../../auth/decorators';
+import { AuthUser } from '../../auth/auth-user.interface';
 
 @Controller('personnes')
 export class PersonneController {
   constructor(private readonly service: PersonneService) {}
 
   @Post()
-  create(@Body() dto: CreatePersonneDto) {
-    return this.service.create(dto);
+  create(@CurrentUser() user: AuthUser, @Body() dto: CreatePersonneDto) {
+    return this.service.create(dto, user.syndicId);
   }
 
   @Get()
-  findAll(@Query('syndicId') syndicId?: string) {
-    return this.service.findAll(syndicId);
+  findAll(@CurrentUser() user: AuthUser) {
+    return this.service.findAll(user.syndicId);
   }
 
   @Get(':id')

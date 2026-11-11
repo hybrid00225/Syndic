@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class CreateCoproprieteDto {
   @IsString()
@@ -16,8 +16,5 @@ export class CreateCoproprieteDto {
   @IsString()
   @IsOptional()
   adresse?: string;
-
-  // ⚠️ TEMPORAIRE : sera dérivé du token d'authentification une fois le module Auth prêt.
-  @IsUUID()
-  syndicId: string;
+  // Le syndic est dérivé du token d'authentification (plus dans le body).
 }

@@ -29,14 +29,15 @@ model Syndic {
 }
 
 model User {
-  id         String   @id @default(uuid())
-  syndicId   String
-  email      String   @unique
-  motDePasse String // hash (argon2) — ajouté avec le module Auth
-  nom        String
-  actif      Boolean  @default(true)
-  mfaActive  Boolean  @default(false)
-  createdAt  DateTime @default(now())
+  id          String   @id @default(uuid())
+  syndicId    String
+  email       String   @unique
+  motDePasse  String // hash bcrypt
+  nom         String
+  adminSyndic Boolean  @default(false) // accès à toutes les copros du syndic
+  actif       Boolean  @default(true)
+  mfaActive   Boolean  @default(false)
+  createdAt   DateTime @default(now())
 
   syndic Syndic                @relation(fields: [syndicId], references: [id])
   roles  UserCoproprieteRole[]

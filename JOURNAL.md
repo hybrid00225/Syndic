@@ -92,7 +92,15 @@
 
 **🎯 BACKEND DU MVP COMPLET** — tout le cycle métier tourne et est testé E2E : patrimoine → propriété → tantièmes → appels de fonds → encaissements → impayés/recouvrement. 6 modules, 60 tests, 7 migrations. DoD du MVP cochée côté backend (voir `docs/MVP.md`).
 
-**Prochaine étape (ce qu'il reste pour un MVP livrable) :**
-- **Slice PDF** (relevé d'appel + reçu + courrier de relance) — nécessite lib PDF + worker.
-- **Auth + RBAC + RLS** (arrêter `syndicId`/`payeurId` en body) et **AuditLog** — dette technique transverse.
-- **Front** (Design System qualité Dribbble/Pinterest + écrans).
+**Couche Auth + RBAC (fait, session 1) :**
+- Deps : `@nestjs/jwt`, `bcryptjs`. Champ `User.adminSyndic` (migration `add_user_admin_syndic`). Env `JWT_SECRET`/`JWT_EXPIRES_IN`.
+- Module `src/auth` : register (crée syndic + admin), login, /auth/me. Hash bcrypt, JWT 7j.
+- 3 gardes globales (APP_GUARD, ordre JWT → Tenant → Roles) : `JwtAuthGuard` (+ `@Public`), `TenantGuard` (isolation sur `:coproprieteId`), `RolesGuard` (`@Roles`, admin bypass). Décorateur `@CurrentUser`.
+- Gestion utilisateurs : POST/GET `/users` (admin) avec rôles par copropriété.
+- **Refactor clé** : `syndicId` retiré des DTO (copropriété, personne) → dérivé du token. `@Roles(GESTIONNAIRE)` sur appel create, `@Roles(CAISSIER,COMPTABLE)` sur paiement create (démo RBAC).
+- Tests : **63/63 verts** (+3 auth). Smoke E2E : 401 sans token, copro créée sans syndicId, comptable→403 sur appel, isolation syndic B→403, mauvais mdp→401.
+
+**Reste sur la sécurité (pas fait) :** RLS PostgreSQL + isolation sur les routes keyées par id d'entité (lot/:id, appel/:id, paiement/:id ne sont pas encore vérifiés vs le syndic de l'utilisateur). AuditLog pas encore branché.
+
+**Prochaine étape :**
+- **AuditLog** (traçabilité append-only) ; ou **slice PDF** ; ou le **front** (Design System).

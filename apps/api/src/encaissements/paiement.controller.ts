@@ -8,14 +8,17 @@ import {
   Patch,
   Post,
 } from '@nestjs/common';
+import { RoleType } from '@prisma/client';
 import { PaiementService } from './paiement.service';
 import { CreatePaiementDto } from './dto/create-paiement.dto';
 import { CreateAffectationDto } from './dto/create-affectation.dto';
+import { Roles } from '../auth/decorators';
 
 @Controller()
 export class PaiementController {
   constructor(private readonly service: PaiementService) {}
 
+  @Roles(RoleType.CAISSIER, RoleType.COMPTABLE)
   @Post('coproprietes/:coproprieteId/paiements')
   create(
     @Param('coproprieteId', ParseUUIDPipe) coproprieteId: string,

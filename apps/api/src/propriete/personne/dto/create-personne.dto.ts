@@ -5,7 +5,6 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
-  IsUUID,
   ValidateNested,
 } from 'class-validator';
 import { PersonneType } from '@prisma/client';
@@ -22,10 +21,7 @@ export class CreatePersonneDto {
   @IsString()
   @IsOptional()
   prenom?: string;
-
-  // ⚠️ TEMPORAIRE : dérivé du token d'authentification plus tard.
-  @IsUUID()
-  syndicId: string;
+  // Le syndic est dérivé du token d'authentification.
 
   @IsArray()
   @ValidateNested({ each: true })

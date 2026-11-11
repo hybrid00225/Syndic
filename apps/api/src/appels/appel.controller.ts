@@ -7,13 +7,16 @@ import {
   Patch,
   Post,
 } from '@nestjs/common';
+import { RoleType } from '@prisma/client';
 import { AppelService } from './appel.service';
 import { CreateAppelDto } from './dto/create-appel.dto';
+import { Roles } from '../auth/decorators';
 
 @Controller()
 export class AppelController {
   constructor(private readonly service: AppelService) {}
 
+  @Roles(RoleType.GESTIONNAIRE)
   @Post('coproprietes/:coproprieteId/appels')
   create(
     @Param('coproprieteId', ParseUUIDPipe) coproprieteId: string,

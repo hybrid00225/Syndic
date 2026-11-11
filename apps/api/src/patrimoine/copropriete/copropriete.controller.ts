@@ -6,24 +6,25 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
-  Query,
 } from '@nestjs/common';
 import { CoproprieteService } from './copropriete.service';
 import { CreateCoproprieteDto } from './dto/create-copropriete.dto';
 import { UpdateCoproprieteDto } from './dto/update-copropriete.dto';
+import { CurrentUser } from '../../auth/decorators';
+import { AuthUser } from '../../auth/auth-user.interface';
 
 @Controller('coproprietes')
 export class CoproprieteController {
   constructor(private readonly service: CoproprieteService) {}
 
   @Post()
-  create(@Body() dto: CreateCoproprieteDto) {
-    return this.service.create(dto);
+  create(@CurrentUser() user: AuthUser, @Body() dto: CreateCoproprieteDto) {
+    return this.service.create(dto, user.syndicId);
   }
 
   @Get()
-  findAll(@Query('syndicId') syndicId?: string) {
-    return this.service.findAll(syndicId);
+  findAll(@CurrentUser() user: AuthUser) {
+    return this.service.findAll(user.syndicId);
   }
 
   @Get(':id')
