@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Building2 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
+import { Wordmark } from '@/components/wordmark';
 import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
@@ -50,55 +50,33 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="grid min-h-screen lg:grid-cols-2">
-      {/* Panneau de marque */}
-      <div className="relative hidden overflow-hidden bg-primary lg:flex lg:flex-col lg:justify-between lg:p-12">
-        <div
-          className="absolute inset-0 opacity-30"
-          style={{
-            backgroundImage:
-              'radial-gradient(600px 300px at 20% 20%, rgba(255,255,255,.35), transparent), radial-gradient(500px 400px at 90% 90%, rgba(0,0,0,.25), transparent)',
-          }}
-        />
-        <div className="relative flex items-center gap-2 text-primary-foreground">
-          <Building2 className="h-7 w-7" />
-          <span className="text-lg font-semibold tracking-tight">
-            Syndic Alpha
-          </span>
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-10">
+      {/* halos verts discrets */}
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          backgroundImage:
+            'radial-gradient(600px 320px at 85% -5%, hsl(var(--primary) / 0.10), transparent 70%), radial-gradient(500px 400px at 5% 110%, hsl(var(--primary) / 0.07), transparent 70%)',
+        }}
+      />
+
+      <div className="relative w-full max-w-md animate-fade-up">
+        <div className="mb-6 flex justify-center">
+          <Wordmark size="lg" subtitle="Gestion de copropriété" />
         </div>
-        <div className="relative text-primary-foreground">
-          <h1 className="max-w-md text-3xl font-semibold leading-tight tracking-tight">
-            La gestion de copropriété, enfin claire et juste au franc près.
+
+        <div className="rounded-2xl border border-border bg-card p-7 shadow-lift">
+          <h1 className="text-xl font-semibold tracking-tight">
+            {mode === 'login' ? 'Accès à votre espace' : 'Créer votre syndic'}
           </h1>
-          <p className="mt-4 max-w-md text-primary-foreground/80">
-            Lots, tantièmes, appels de fonds, encaissements et impayés —
-            maîtrisés, tracés, pensés pour l&apos;Afrique de l&apos;Ouest.
-          </p>
-        </div>
-        <div className="relative text-sm text-primary-foreground/60">
-          © {new Date().getFullYear()} Syndic Alpha
-        </div>
-      </div>
-
-      {/* Formulaire */}
-      <div className="flex items-center justify-center p-6 sm:p-10">
-        <div className="w-full max-w-sm animate-fade-up">
-          <div className="mb-8 flex items-center gap-2 lg:hidden">
-            <Building2 className="h-6 w-6 text-primary" />
-            <span className="text-lg font-semibold">Syndic Alpha</span>
-          </div>
-
-          <h2 className="text-2xl font-semibold tracking-tight">
-            {mode === 'login' ? 'Bon retour' : 'Créer votre espace'}
-          </h2>
           <p className="mt-1 text-sm text-muted-foreground">
             {mode === 'login'
-              ? 'Connectez-vous pour accéder à votre tableau de bord.'
+              ? 'Connectez-vous pour gérer vos copropriétés.'
               : 'Créez votre syndic et votre compte administrateur.'}
           </p>
 
-          {/* Onglets */}
-          <div className="mt-6 inline-flex rounded-lg bg-muted p-1 text-sm">
+          {/* onglets soulignés */}
+          <div className="mt-5 flex gap-6 border-b border-border">
             {(['login', 'register'] as const).map((m) => (
               <button
                 key={m}
@@ -107,10 +85,10 @@ export default function LoginPage() {
                   setError(null);
                 }}
                 className={cn(
-                  'rounded-md px-4 py-1.5 font-medium transition-colors',
+                  '-mb-px border-b-2 pb-2.5 text-sm font-medium transition-colors',
                   mode === m
-                    ? 'bg-card text-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground',
+                    ? 'border-primary text-foreground'
+                    : 'border-transparent text-muted-foreground hover:text-foreground',
                 )}
               >
                 {m === 'login' ? 'Connexion' : 'Inscription'}
@@ -118,7 +96,7 @@ export default function LoginPage() {
             ))}
           </div>
 
-          <form onSubmit={submit} className="mt-6 space-y-4">
+          <form onSubmit={submit} className="mt-5 space-y-4">
             {mode === 'register' && (
               <>
                 <div>
@@ -164,7 +142,7 @@ export default function LoginPage() {
             </div>
 
             {error && (
-              <p className="rounded-md bg-danger/10 px-3 py-2 text-sm text-danger">
+              <p className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">
                 {error}
               </p>
             )}
@@ -175,6 +153,10 @@ export default function LoginPage() {
             </Button>
           </form>
         </div>
+
+        <p className="mt-5 text-center text-xs text-muted-foreground">
+          © {new Date().getFullYear()} Syndic Alpha · Afrique de l&apos;Ouest
+        </p>
       </div>
     </div>
   );

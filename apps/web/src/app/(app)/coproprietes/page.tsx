@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { PageLoader, Spinner } from '@/components/ui/spinner';
+import { STATUT_COPRO } from '@/lib/utils';
 
 interface Copropriete {
   id: string;
@@ -84,8 +85,8 @@ export default function CoproprietesPage() {
                     </p>
                   </div>
                 </div>
-                <Badge tone={statutTone[c.statut] ?? 'neutral'}>
-                  {c.statut.toLowerCase().replace('_', ' ')}
+                <Badge tone={statutTone[c.statut] ?? 'neutral'} dot>
+                  {STATUT_COPRO[c.statut] ?? c.statut}
                 </Badge>
               </CardContent>
             </Card>

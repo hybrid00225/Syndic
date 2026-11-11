@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import { Sidebar } from '@/components/sidebar';
+import { Topbar } from '@/components/topbar';
 import { PageLoader } from '@/components/ui/spinner';
 
 export default function AppLayout({
@@ -23,9 +24,12 @@ export default function AppLayout({
   return (
     <div className="flex min-h-screen">
       <Sidebar />
-      <main className="flex-1 overflow-x-hidden">
-        <div className="mx-auto max-w-6xl px-6 py-8 lg:px-10">{children}</div>
-      </main>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <Topbar />
+        <main className="flex-1 overflow-x-hidden px-6 py-7 lg:px-8">
+          <div className="mx-auto max-w-6xl">{children}</div>
+        </main>
+      </div>
     </div>
   );
 }

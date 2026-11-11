@@ -37,27 +37,19 @@ Ces tics trahissent le design « IA par défaut ». **Interdits :**
 
 ---
 
-## 3. Direction artistique — À VALIDER (proposition)
+## 3. Direction artistique — ✅ RETENUE : « CRM clair · vert »
 
-> 3 pistes distinctes. L'utilisateur en choisit une (ou mixe / fournit des références Dribbble/Pinterest). Une fois choisie, on fige les tokens et la typo ici, puis on reconstruit le Design System.
+> Choisie par l'utilisateur (référence d'ambiance : un CRM clair à accents verts, type « Amanah CRM »). Appliquée dans le Design System (`apps/web`).
 
-### Piste A — « Le Dossier » (éditorial / architectural / chaud-premium)
-- **Idée** : Syndic Alpha comme un registre d'expert-comptable, précis et sérieux, mais chaleureux. Papier os, encre chaude, filets façon grand-livre, chiffres tabulaires soignés.
-- **Couleurs** : encre `#1B1712`, papier/os `#F6F1E8`, accent **ocre/ambre brûlé** `#B4661F`, filets `#E4DCCD`. Positif vert forêt profond.
-- **Typo** : affichage **serif à caractère** (ex. Fraunces / Instrument Serif) + UI grotesque nette (ex. Hanken Grotesk).
-- **Formes** : radius faible (4-6px), filets 1px, inputs à soulignement, boutons encre pleins.
+- **Ambiance** : **clair, aéré, professionnel, data-riche**. Fond blanc cassé légèrement verdâtre, cartes blanches, bordures fines, ombres subtiles. **Pas sombre, pas papier/éditorial.**
+- **Couleur de marque = VERT profond** (émeraude) — `--primary: 156 64% 24%` (clair), `154 52% 46%` (sombre). Jamais de violet.
+- **Sémantique** : succès vert, alerte ambre, danger brique, info bleu (barres de catégories). Chiffres en `tabular-nums` (classe `.nums`).
+- **Typo** : **Hanken Grotesk** (auto-hébergée via `@fontsource-variable`, Google Fonts étant bloqué ici). Grotesque nette, un peu chaleureuse. Gros chiffres proéminents.
+- **Logo** : lockup = badge vert arrondi à monogramme « S » + « Syndic Alpha » + sous-titre (composant `Wordmark`).
+- **Layout** : shell classique = **sidebar** blanche à sections groupées (Vue d'ensemble / Patrimoine / Finances) + **topbar** (recherche, thème, notifications, avatar) + contenu avec fil d'Ariane, titre, **tuiles KPI**, cartes data-riches (badges de statut à point, barres de progression, mini-stats).
+- **Formes** : radius moyen (~0.7rem cartes), boutons `rounded-lg`, badges pilule, dark mode complet.
 
-### Piste B — « Fintech nuit » (sombre, précis, haut de gamme)
-- **Idée** : tableau de bord financier premium, fond nuit profond, data lumineuse, accent électrique maîtrisé (pas violet).
-- **Couleurs** : base nuit `#0C0E12`, surfaces `#14171D`, accent **vert menthe/lime** `#9EE37D` ou **ambre** `#F2B347`, texte os.
-- **Typo** : grotesque technique (ex. Geist / Space Grotesk) + chiffres tabulaires proéminents.
-- **Formes** : radius moyen, bordures lumineuses discrètes, glass léger, ombres portées profondes.
-
-### Piste C — « Moderne africain » (chaud, graphique, identitaire)
-- **Idée** : chaleur et identité ouest-africaine assumées — terre, soleil, motif géométrique discret en filigrane, sans folklore.
-- **Couleurs** : terracotta `#C65D3B`, safran `#E8A33D`, vert kola `#2E5D4B`, crème `#FBF6EC`, encre `#211A16`.
-- **Typo** : affichage géométrique chaleureux + grotesque humaniste.
-- **Formes** : radius généreux mais maîtrisé, aplats colorés, motif en texture de fond très subtil.
+> Patrons de data-richesse à réutiliser (inspiration référence) : tuile KPI (icône + gros chiffre + tendance), carte entité (en-tête + barre de progression + grille de mini-stats + badge statut + action), sparkline, badges à point coloré.
 
 ---
 

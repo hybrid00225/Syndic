@@ -2,18 +2,29 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Home, CheckCircle2, Clock, ArrowRight } from 'lucide-react';
+import {
+  Home,
+  CheckCircle2,
+  Clock,
+  Globe2,
+  ArrowRight,
+  ChevronRight,
+} from 'lucide-react';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { StatTile } from '@/components/ui/stat-tile';
 import { PageLoader } from '@/components/ui/spinner';
+import { formatDate, STATUT_COPRO } from '@/lib/utils';
 
 interface Copropriete {
   id: string;
   nom: string;
   pays: string;
+  adresse: string | null;
   statut: string;
+  dateCreation: string;
 }
 
 const statutTone: Record<string, 'success' | 'warning' | 'neutral'> = {
@@ -35,60 +46,54 @@ export default function DashboardPage() {
 
   const actives = copros.filter((c) => c.statut === 'ACTIVE').length;
   const enCreation = copros.filter((c) => c.statut === 'EN_CREATION').length;
-
-  const tiles = [
-    {
-      label: 'Copropriétés',
-      value: copros.length,
-      icon: Home,
-      classes: 'bg-primary/10 text-primary',
-    },
-    {
-      label: 'Actives',
-      value: actives,
-      icon: CheckCircle2,
-      classes: 'bg-success/10 text-success',
-    },
-    {
-      label: 'En création',
-      value: enCreation,
-      icon: Clock,
-      classes: 'bg-warning/15 text-warning',
-    },
-  ];
+  const pays = new Set(copros.map((c) => c.pays)).size;
 
   return (
-    <div className="animate-fade-up space-y-8">
+    <div className="animate-fade-up space-y-7">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Bonjour {user?.nom?.split(' ')[0]} 👋
+        <div className="flex items-center gap-1 text-sm text-muted-foreground">
+          <span>Espace</span>
+          <ChevronRight className="h-3.5 w-3.5" />
+          <span className="text-foreground">Tableau de bord</span>
+        </div>
+        <h1 className="mt-2 text-2xl font-semibold tracking-tight">
+          Bonjour {user?.nom?.split(' ')[0]}
         </h1>
         <p className="mt-1 text-muted-foreground">
-          Voici un aperçu de votre portefeuille.
+          {copros.length} copropriété{copros.length > 1 ? 's' : ''} ·{' '}
+          {actives} active{actives > 1 ? 's' : ''} dans votre portefeuille.
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        {tiles.map((t) => {
-          const Icon = t.icon;
-          return (
-            <Card key={t.label}>
-              <CardContent className="flex items-center gap-4 pt-5">
-                <div
-                  className={`flex h-12 w-12 items-center justify-center rounded-xl ${t.classes}`}
-                >
-                  <Icon className="h-6 w-6" />
-                </div>
-                <div>
-                  <p className="text-2xl font-semibold tracking-tight">
-                    {t.value}
-                  </p>
-                  <p className="text-sm text-muted-foreground">{t.label}</p>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatTile
+          label="Copropriétés"
+          value={copros.length}
+          icon={Home}
+          iconClass="bg-primary/10 text-primary"
+          hint="au total"
+        />
+        <StatTile
+          label="Actives"
+          value={actives}
+          icon={CheckCircle2}
+          iconClass="bg-success/12 text-success"
+          trend={{ value: 'En exploitation', tone: 'success' }}
+        />
+        <StatTile
+          label="En création"
+          value={enCreation}
+          icon={Clock}
+          iconClass="bg-warning/15 text-warning"
+          hint="à finaliser"
+        />
+        <StatTile
+          label="Pays"
+          value={pays}
+          icon={Globe2}
+          iconClass="bg-info/12 text-info"
+          hint="juridictions"
+        />
       </div>
 
       <div>
@@ -106,7 +111,7 @@ export default function DashboardPage() {
 
         {copros.length === 0 ? (
           <Card>
-            <CardContent className="py-12 text-center">
+            <CardContent className="py-14 text-center">
               <p className="text-muted-foreground">
                 Aucune copropriété pour l&apos;instant.
               </p>
@@ -119,18 +124,30 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-3">
-            {copros.slice(0, 5).map((c) => (
-              <Card key={c.id}>
-                <CardContent className="flex items-center justify-between py-4">
-                  <div>
-                    <p className="font-medium">{c.nom}</p>
-                    <p className="text-sm text-muted-foreground">{c.pays}</p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {copros.slice(0, 6).map((c) => (
+              <Card key={c.id} className="p-4 transition-shadow hover:shadow-lift">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                      <Home className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="font-medium leading-tight">{c.nom}</p>
+                      <p className="mt-0.5 text-sm text-muted-foreground">
+                        {c.adresse ?? c.pays}
+                      </p>
+                    </div>
                   </div>
-                  <Badge tone={statutTone[c.statut] ?? 'neutral'}>
-                    {c.statut.toLowerCase().replace('_', ' ')}
+                  <Badge tone={statutTone[c.statut] ?? 'neutral'} dot>
+                    {STATUT_COPRO[c.statut] ?? c.statut}
                   </Badge>
-                </CardContent>
+                </div>
+                <div className="mt-4 flex items-center gap-4 border-t border-border pt-3 text-xs text-muted-foreground">
+                  <span>{c.pays}</span>
+                  <span>·</span>
+                  <span>Créée le {formatDate(c.dateCreation)}</span>
+                </div>
               </Card>
             ))}
           </div>

@@ -21,3 +21,11 @@ export function formatDate(iso: string): string {
     year: 'numeric',
   });
 }
+
+// Libellés FR des statuts de copropriété (orthographe correcte).
+export const STATUT_COPRO: Record<string, string> = {
+  ACTIVE: 'Active',
+  EN_CREATION: 'En création',
+  INACTIVE: 'Inactive',
+  CLOTUREE: 'Clôturée',
+};
