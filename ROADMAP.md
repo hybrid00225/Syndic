@@ -1,4 +1,4 @@
-# Roadmap — ZenAPI
+# Roadmap — Syndic Alpha
 
 > Feuille de route vivante, relue à chaque session. On avance **par vagues, un module à la fois**.
 > Cycle par module : **Spec → Données → Code → Tests → Revue**.

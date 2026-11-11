@@ -1,4 +1,4 @@
-# Journal de bord — ZenAPI
+# Journal de bord — Syndic Alpha
 
 > Une entrée par session. En fin de session : « fait / décisions / prochaine étape ».
 > En début de session suivante : relire la dernière entrée. Entrées les plus récentes **en haut**.
@@ -20,6 +20,14 @@
 - Méthode : par vagues, cycle Spec → Données → Code → Tests → Revue.
 - MVP validé par l'utilisateur (cœur patrimoine + financier léger, sans compta OHADA complète ni AG/GMAO).
 
+**Modèle de données :**
+- `docs/data-model.md` créé puis **gelé** (schéma Prisma, 20 tables).
+- Arbitrages métier validés par l'utilisateur : quote-part en **numérateur/dénominateur** (fraction exacte), **argent en entiers `BigInt`** (jamais de virgule — on ne paie pas une fraction de franc), **usufruitier = redevable**, **tables de contacts** typées, table `Relance` ajoutée.
+
+**Autres décisions :**
+- Projet renommé **ZenAPI → Syndic Alpha** (dans tous nos docs ; `analyse.md` garde l'ancien nom car c'est la source ChatGPT).
+- Rappel méthode : **un module à la fois**, ne pas tout construire d'un coup.
+
 **Prochaine étape :**
-- Concevoir le **modèle de données du cœur** (Patrimoine + Propriété M:N + Tantièmes) — la décision la plus irréversible.
-- Puis initialiser le monorepo (NestJS + Prisma + PostgreSQL).
+- Initialiser le monorepo (NestJS + Prisma + PostgreSQL + packages partagés).
+- Puis implémenter **uniquement le 1er module : Patrimoine** (Copropriété → Bâtiment → Niveau → Lot), cycle complet Spec → Données → Code → Tests → Revue.

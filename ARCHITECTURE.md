@@ -1,4 +1,4 @@
-# Architecture — ZenAPI (SaaS de gestion de syndic)
+# Architecture — Syndic Alpha (SaaS de gestion de syndic)
 
 > Document de référence technique. Dernière mise à jour : 2026-11-11.
 > Cible : Afrique de l'Ouest (FCFA, Mobile Money, cadre OHADA), règles juridiques **paramétrables par pays**.
@@ -82,7 +82,7 @@ Les modules **ne s'appellent pas directement** : ils communiquent par **événem
 ### 4.3 ⚡ Rapidité d'exécution
 - **Redis** en cache (soldes, tantièmes recalculés, sessions).
 - **Travaux lourds en arrière-plan (BullMQ)** : génération de masse d'appels de fonds, PDF en lot, relances, rapprochement bancaire → jamais dans le temps de réponse HTTP. L'interface reste instantanée.
-- **L'argent en `NUMERIC` / centimes entiers, JAMAIS en flottant** — règle d'or non négociable (erreurs d'arrondi interdites en compta).
+- **L'argent en entiers (`BigInt`), unité de la devise (FCFA = 1 franc, sans centime), JAMAIS de virgule ni de flottant** — règle d'or non négociable (on ne paie pas une fraction de franc ; zéro erreur d'arrondi).
 
 ### 4.4 📄 PDF, documents & fichiers
 - **Stockage objet S3-compatible** (MinIO auto-hébergé envisagé pour latence/coûts en Afrique de l'Ouest). Les fichiers ne vivent **jamais** en base ; en base seulement métadonnées + versions (section 20).
@@ -116,7 +116,7 @@ Les modules **ne s'appellent pas directement** : ils communiquent par **événem
 2. **Tantièmes versionnés par période** : un calcul utilise la version de la clé applicable à la période concernée (règle 5.15). Une modification ne recalcule jamais silencieusement un exercice clôturé (règle 5.14).
 3. **Mutations non destructives** : une vente n'écrase ni les paiements, ni les factures, ni l'historique de propriété (section 24). On distingue période de propriété, date d'exigibilité, payeur effectif et redevable juridique.
 4. **Paiement ≠ affectation** : deux opérations distinctes (section 10). Un paiement reçu n'est pas automatiquement imputé à une dette.
-5. **Comptabilité en partie double**, écritures validées **jamais supprimées** → correction par contre-passation (section 13). Montants en `NUMERIC`.
+5. **Comptabilité en partie double**, écritures validées **jamais supprimées** → correction par contre-passation (section 13). Montants en entiers (`BigInt`).
 6. **Multi-tenant** : `syndic_id` (tenant) + scoping copropriété sur chaque table, appliqué par RLS.
 
 ---

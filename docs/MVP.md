@@ -1,4 +1,4 @@
-# MVP — ZenAPI (Première version livrable)
+# MVP — Syndic Alpha (Première version livrable)
 
 > Objectif du MVP : **un syndic peut gérer son patrimoine, appeler les fonds et encaisser les paiements**, avec un suivi des impayés. C'est le cycle qui crée de la valeur dès le jour 1.
 > Tout ce qui n'est pas listé « DANS LE MVP » est **explicitement reporté** (anti-dérive du périmètre).
@@ -73,7 +73,7 @@ Un **gestionnaire de copropriété** se connecte, crée une copropriété avec s
 Ces règles doivent être **couvertes par des tests automatiques** :
 
 1. Un utilisateur d'une copropriété ne peut **jamais** lire les données d'une autre (RLS).
-2. Tous les montants sont en `NUMERIC`/centimes — **aucun flottant**.
+2. Tous les montants sont des **entiers** (`BigInt`), en unité de la devise — **aucune virgule, aucun flottant**.
 3. La propriété est **M:N** avec quote-part/nature/dates — pas de lien direct 1:1.
 4. Un calcul de répartition utilise **la version de tantièmes de la période** concernée.
 5. Un appel de fonds **validé** ne peut pas être modifié silencieusement.

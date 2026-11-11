@@ -1,9 +1,9 @@
-# Modèle de données — Cœur ZenAPI (MVP)
+# Modèle de données — Cœur Syndic Alpha (MVP)
 
 > **La fondation la plus critique du projet.** Conçue pour être juste dès le départ sur les 3 pièges mortels : propriété M:N, tantièmes versionnés, paiement ≠ affectation.
 > Schéma de référence (Prisma). Il sera copié dans `prisma/schema.prisma` à l'initialisation du monorepo.
 
-Dernière mise à jour : 2026-11-11. Statut : **🟨 en revue — à geler avec l'utilisateur avant implémentation.**
+Dernière mise à jour : 2026-11-11. Statut : **✅ gelé — arbitrages métier validés. Implémentation module par module.**
 
 ---
 
@@ -11,7 +11,8 @@ Dernière mise à jour : 2026-11-11. Statut : **🟨 en revue — à geler avec 
 
 | Principe | Règle |
 |---|---|
-| **Argent** | Type `Decimal` (→ PostgreSQL `NUMERIC`), **jamais** `Float`. XOF/FCFA = 0 décimale, mais on stocke en `Decimal(18,4)` pour rester multi-devise. |
+| **Argent** | **Entiers (`BigInt`)**, en unité entière de la devise (FCFA = 1 franc, aucun centime). **Jamais de nombre à virgule** : on ne peut pas payer une fraction de franc, et ça supprime toute erreur d'arrondi. |
+| **Quote-part / fractions** | Stockées en **numérateur / dénominateur entiers** (ex. 1/3 exact), jamais en décimal. |
 | **Identifiants** | `uuid` sur toutes les tables (distribué, non devinable). |
 | **Multi-tenant** | `syndicId` en tête de hiérarchie, `coproprieteId` sur les tables métier → isolation par **RLS PostgreSQL**. |
 | **Historisation** | Pas de suppression physique des données sensibles → `date_fin` / statut `ANNULE` / soft-delete. L'historique de propriété et les écritures financières sont **immuables**. |
@@ -193,18 +194,33 @@ model Personne {
   type      PersonneType
   nom       String       // nom/raison sociale
   prenom    String?
-  emails    String[]     // plusieurs adresses (règle 3.18)
-  telephones String[]
-  adresse   String?
   actif     Boolean      @default(true)
   createdAt DateTime     @default(now())
 
   syndic      Syndic @relation(fields: [syndicId], references: [id])
+  contacts    Contact[]
   detentions  DetentionPropriete[]
   lignesDues  LigneAppelDeFonds[]  @relation("Redevable")
   paiements   Paiement[]           @relation("Payeur")
 
   @@index([syndicId])
+}
+
+enum ContactType { EMAIL TELEPHONE ADRESSE_POSTALE }
+
+// Coordonnées multiples et typées (règles 3.16 à 3.18).
+model Contact {
+  id         String      @id @default(uuid())
+  personneId String
+  type       ContactType
+  valeur     String      // l'adresse email, le numéro, l'adresse postale
+  libelle    String?     // ex. "facturation", "perso", "bureau"
+  principal  Boolean     @default(false) // coordonnée par défaut pour ce type
+  createdAt  DateTime    @default(now())
+
+  personne Personne @relation(fields: [personneId], references: [id])
+
+  @@index([personneId])
 }
 
 enum NatureDroit { PLEINE_PROPRIETE USUFRUIT NUE_PROPRIETE INDIVISION }
@@ -213,19 +229,21 @@ enum NatureDroit { PLEINE_PROPRIETE USUFRUIT NUE_PROPRIETE INDIVISION }
 // JAMAIS de lien direct 1:1. Sert aussi d'HISTORIQUE des mutations.
 model DetentionPropriete {
   id          String      @id @default(uuid())
-  lotId       String
-  personneId  String
-  quotePart   Decimal     @db.Decimal(9, 6) // fraction 0..1 (ex. 0.5)
-  natureDroit NatureDroit @default(PLEINE_PROPRIETE)
-  dateDebut   DateTime
-  dateFin     DateTime?   // null = détention en cours
+  lotId        String
+  personneId   String
+  quotePartNum Int         // numérateur (ex. 1)
+  quotePartDen Int         // dénominateur (ex. 3)  → quote-part = num/den, EXACTE
+  natureDroit  NatureDroit @default(PLEINE_PROPRIETE)
+  dateDebut    DateTime
+  dateFin      DateTime?   // null = détention en cours
 
   lot      Lot      @relation(fields: [lotId], references: [id])
   personne Personne @relation(fields: [personneId], references: [id])
 
   @@index([lotId, dateDebut])
   @@index([personneId])
-  // Invariant applicatif : Σ quotePart (pleine propriété) par lot / période = 1
+  // Invariant applicatif : Σ (quotePartNum/quotePartDen) par lot / période = 1
+  // Redevable des charges : l'USUFRUITIER (pas le nu-propriétaire) — voir LigneAppelDeFonds.
 }
 
 // =====================================================================
@@ -303,7 +321,7 @@ model PosteAppel {
   appelId         String
   cleVersionId    String
   libelle         String
-  montantARepartir Decimal @db.Decimal(18, 4)
+  montantARepartir BigInt // entier, unité de la devise (ex. FCFA)
 
   appel      AppelDeFonds          @relation(fields: [appelId], references: [id])
   cleVersion CleRepartitionVersion @relation(fields: [cleVersionId], references: [id])
@@ -317,10 +335,10 @@ model LigneAppelDeFonds {
   appelId         String
   posteId         String
   lotId           String
-  redevableId     String  // personne juridiquement redevable à la date d'exigibilité
+  redevableId     String  // redevable à la date d'exigibilité (usufruitier si usufruit, sinon propriétaire)
   tantiemeSnapshot Int    // tantièmes figés au calcul
   totalSnapshot    Int    // total figé au calcul
-  montant          Decimal @db.Decimal(18, 4)
+  montant          BigInt // entier, unité de la devise
 
   appel     AppelDeFonds @relation(fields: [appelId], references: [id])
   poste     PosteAppel   @relation(fields: [posteId], references: [id])
@@ -346,7 +364,7 @@ model Paiement {
   coproprieteId  String
   payeurId       String         // peut être un tiers payant pour un copropriétaire
   dateOperation  DateTime
-  montant        Decimal        @db.Decimal(18, 4)
+  montant        BigInt         // entier, unité de la devise
   moyen          MoyenPaiement
   referenceBancaire String?
   statut         PaiementStatut @default(EN_ATTENTE)
@@ -366,7 +384,7 @@ model AffectationPaiement {
   id             String  @id @default(uuid())
   paiementId     String
   ligneAppelId   String
-  montantAffecte Decimal @db.Decimal(18, 4)
+  montantAffecte BigInt   // entier, unité de la devise
   createdAt      DateTime @default(now())
 
   paiement   Paiement          @relation(fields: [paiementId], references: [id])
@@ -374,6 +392,25 @@ model AffectationPaiement {
 
   @@index([paiementId])
   @@index([ligneAppelId])
+}
+
+// =====================================================================
+// IMPAYÉS — relances (le solde dû se calcule : ligne.montant − Σ affectations)
+// =====================================================================
+
+enum CanalRelance { EMAIL SMS COURRIER }
+
+model Relance {
+  id          String       @id @default(uuid())
+  ligneAppelId String
+  personneId  String       // le redevable relancé
+  niveau      Int          @default(1) // 1 = 1re relance, 2 = mise en demeure...
+  canal       CanalRelance
+  dateEnvoi   DateTime     @default(now())
+  documentId  String?      // courrier PDF généré éventuel
+
+  @@index([ligneAppelId])
+  @@index([personneId])
 }
 
 // =====================================================================
@@ -401,18 +438,21 @@ model Document {
 2. **Propriété M:N** via `DetentionPropriete` — jamais de FK propriétaire sur `Lot`.
 3. **Historique de propriété** conservé (dates début/fin, pas de suppression).
 4. **Tantièmes versionnés** + **snapshot** figé sur chaque ligne d'appel.
-5. **Argent en `Decimal`** partout.
+5. **Argent en `BigInt` (entiers)** partout — aucun nombre à virgule. Fractions en num/dén.
 6. **Paiement ≠ affectation** : deux tables distinctes.
 7. **Idempotence** Mobile Money via `idempotencyKey @unique`.
 8. **Audit append-only** via `AuditLog`.
 
 ---
 
-## 5. Points à valider ensemble (avant de geler)
+## 5. Décisions validées (2026-11-11)
 
-- [ ] **Quote-part** : fraction `Decimal(9,6)` (0..1) — OK, ou tu préfères numérateur/dénominateur (ex. 1/3 exact) ?
-- [ ] **Usufruit / nue-propriété** : gérés par `natureDroit` dans la détention. Qui est redevable des charges (usufruitier en général) ? À confirmer selon le droit applicable.
-- [ ] **Emails/téléphones** stockés en tableau (`String[]`) pour le MVP — suffisant, ou on fait des tables de contacts dès maintenant ?
-- [ ] **Exercice comptable** : pas encore dans le MVP (les appels référencent une date). On l'ajoute en Vague 3 (compta). OK ?
-- [ ] **Budget** : hors MVP — l'appel porte directement le `montantARepartir` par poste. OK ?
-- [ ] **Relances** : table `Relance` à ajouter pour le suivi des impayés (manquante ici, prévue dans le MVP). Je l'ajoute à la prochaine itération.
+- [x] **Quote-part** : numérateur/dénominateur entiers (`quotePartNum`/`quotePartDen`) → 1/3 exact.
+- [x] **Argent** : `BigInt` (entiers) partout, aucun nombre à virgule.
+- [x] **Redevable** en cas d'usufruit : l'**usufruitier**.
+- [x] **Contacts** : vraies tables (`Contact`, typées EMAIL/TELEPHONE/ADRESSE), pas de tableaux bruts.
+- [x] **Relance** : table ajoutée pour le suivi des impayés.
+
+### Reste à confirmer plus tard (hors MVP)
+- [ ] **Exercice comptable** : ajouté en Vague 3 (compta). Pour le MVP, les appels référencent une date.
+- [ ] **Budget** : hors MVP — l'appel porte directement le `montantARepartir` par poste.
