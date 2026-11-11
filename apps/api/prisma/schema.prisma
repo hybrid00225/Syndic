@@ -25,6 +25,7 @@ model Syndic {
 
   users        User[]
   coproprietes Copropriete[]
+  personnes    Personne[]
 }
 
 model User {
@@ -163,10 +164,86 @@ model Lot {
   superficie    Decimal?  @db.Decimal(10, 2) // m² (surface, PAS de l'argent)
   statut        LotStatut @default(VACANT)
 
-  copropriete Copropriete @relation(fields: [coproprieteId], references: [id])
-  batiment    Batiment?   @relation(fields: [batimentId], references: [id])
-  niveau      Niveau?     @relation(fields: [niveauId], references: [id])
+  copropriete Copropriete          @relation(fields: [coproprieteId], references: [id])
+  batiment    Batiment?            @relation(fields: [batimentId], references: [id])
+  niveau      Niveau?              @relation(fields: [niveauId], references: [id])
+  detentions  DetentionPropriete[]
 
   @@unique([coproprieteId, reference])
   @@index([coproprieteId])
+}
+
+// =====================================================================
+// MODULE 02 — PERSONNES (copropriétaires) & PROPRIÉTÉ (M:N)
+// =====================================================================
+
+enum PersonneType {
+  PHYSIQUE
+  MORALE
+}
+
+// Une personne vit au niveau du SYNDIC : elle peut posséder des lots
+// dans plusieurs copropriétés du même syndic (règle 3.15).
+model Personne {
+  id        String       @id @default(uuid())
+  syndicId  String
+  type      PersonneType
+  nom       String // nom de famille ou raison sociale
+  prenom    String? // personnes physiques
+  actif     Boolean      @default(true)
+  createdAt DateTime     @default(now())
+
+  syndic     Syndic               @relation(fields: [syndicId], references: [id])
+  contacts   Contact[]
+  detentions DetentionPropriete[]
+
+  @@index([syndicId])
+}
+
+enum ContactType {
+  EMAIL
+  TELEPHONE
+  ADRESSE_POSTALE
+}
+
+// Coordonnées multiples et typées (règles 3.16 à 3.18).
+model Contact {
+  id         String      @id @default(uuid())
+  personneId String
+  type       ContactType
+  valeur     String // l'email, le numéro, l'adresse
+  libelle    String? // ex. "facturation", "perso"
+  principal  Boolean     @default(false)
+  createdAt  DateTime    @default(now())
+
+  personne Personne @relation(fields: [personneId], references: [id])
+
+  @@index([personneId])
+}
+
+enum NatureDroit {
+  PLEINE_PROPRIETE
+  USUFRUIT
+  NUE_PROPRIETE
+  INDIVISION
+}
+
+// ⚠️ LE CŒUR : relation plusieurs-à-plusieurs Personne ↔ Lot.
+// JAMAIS de lien direct 1:1. Sert aussi d'HISTORIQUE des mutations.
+// Quote-part exacte en numérateur/dénominateur (jamais de décimal).
+model DetentionPropriete {
+  id           String      @id @default(uuid())
+  lotId        String
+  personneId   String
+  quotePartNum Int // numérateur (ex. 1)
+  quotePartDen Int // dénominateur (ex. 3) → quote-part = num/den
+  natureDroit  NatureDroit @default(PLEINE_PROPRIETE)
+  dateDebut    DateTime
+  dateFin      DateTime? // null = détention en cours
+
+  lot      Lot      @relation(fields: [lotId], references: [id])
+  personne Personne @relation(fields: [personneId], references: [id])
+
+  @@index([lotId, dateDebut])
+  @@index([personneId])
 }

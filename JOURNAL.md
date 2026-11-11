@@ -48,5 +48,14 @@
 - Tests : **8/8 verts** (unitaires services). Test E2E HTTP OK (copro → lot → doublon 409).
 - ⏳ Reste branché plus tard : AuditLog sur écritures (RG-09), dérivation `syndicId` depuis l'Auth (actuellement en body, TEMPORAIRE).
 
-**Prochaine étape :**
-- Soit le **front** de ce module (écrans Patrimoine, Design System) ; soit le **module 02 Propriété** (`DetentionPropriete` M:N + Copropriétaires). À décider avec l'utilisateur.
+**Module 02 — Propriété & Copropriétaires (fait, session 1) :**
+- Spec `docs/specs/02-propriete.md` (RG-10 → RG-16).
+- Schéma étendu : `Personne`, `Contact` (typés), `DetentionPropriete` (M:N) + enums (migration `add_personne_contact_detention`).
+- Utilitaire `src/common/fraction.ts` : arithmétique de fractions **exacte** (BigInt), validation quote-part, chevauchement d'intervalles.
+- API : Personne (+ contacts), Détention (attribution/clôture).
+- **Invariant clé RG-13** : somme des quote-parts de même nature de droit qui se chevauchent ≤ 100 % (sinon 409). Natures distinctes (usufruit/nue-propriété) indépendantes. Usufruitier = redevable (noté, appliqué plus tard).
+- Autres contrôles : RG-10 (personne+lot même syndic → 400), RG-11 (quote-part valide), RG-12 (dateFin > dateDebut), RG-15 (email valide).
+- Tests : **27/27 verts** (12 fraction, 7 détention, 8 patrimoine). Smoke test HTTP OK : 3/5 + 3/5 → 409, 3/5 + 2/5 = 1 → OK, lot à 2 copropriétaires.
+
+**Prochaine étape (à décider) :**
+- Module **03 — Clés de répartition & tantièmes** (versionnés) ; ou le **front** (Design System + écrans Patrimoine/Copropriétaires).

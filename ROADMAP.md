@@ -28,8 +28,8 @@ Dernière mise à jour : 2026-11-11.
 | Statut | Étape |
 |---|---|
 | ✅ | Module **Copropriétés / Bâtiments / Niveaux / Lots** (API backend + tests) — spec `docs/specs/01-patrimoine.md` |
-| ⬜ | Module **Copropriétaires** (personnes physiques/morales) |
-| ⬜ | **Détention de propriété M:N** (quote-part, nature de droit, dates) — pièce critique |
+| ✅ | Module **Copropriétaires** (personnes physiques/morales + contacts) — spec `docs/specs/02-propriete.md` |
+| ✅ | **Détention de propriété M:N** (quote-part exacte, nature de droit, dates, invariant somme ≤ 100 %) — pièce critique |
 | ⬜ | Module **Occupants / Locataires** |
 
 ## Vague 2 — Cœur financier (MVP, partie 2)
