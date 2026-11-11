@@ -53,6 +53,26 @@ Ces tics trahissent le design « IA par défaut ». **Interdits :**
 
 ---
 
+## 3bis. Exigences UX — « réflexes de dev senior » (contraignant)
+
+> Ne jamais livrer un écran « nu ». Ces affordances sont attendues **d'office**, sans qu'on les demande.
+
+**Formulaires d'authentification :**
+- Champ mot de passe → **bouton afficher/masquer** (œil), `autocomplete` correct.
+- Connexion → **« Mot de passe oublié ? »** + **« Se souvenir de moi »** (persistant vs session).
+- **Bascule Connexion ⇄ Inscription** claire (lien de pied).
+- Auth sociale si pertinente pour le domaine (**Google** oui, GitHub non pour un syndic) + séparateur « Ou ». Si pas de backend → message honnête « bientôt », jamais un bouton mort.
+- Aide sous les champs (règles de mot de passe), validation native + bannière d'erreur serveur.
+
+**Tout écran / formulaire :**
+- États explicites : **chargement** (spinner + disabled), **vide** (empty state soigné + CTA), **erreur** (message clair), **succès**.
+- Boutons : état disabled pendant l'action, `type` correct, pas de double-submit.
+- Confirmations pour actions destructives/irréversibles (valider un appel, annuler un paiement…).
+- Accessibilité : labels liés, `aria-label` sur les boutons icône, focus visible, contrastes AA, navigation clavier.
+- Montants en `tabular-nums`, dates et nombres formatés (fr-FR), FCFA sans décimale.
+- Responsive (le panneau marque se masque en mobile), jamais de scroll horizontal.
+- Feedback après action (toast/inline), listes paginées/triables quand volumineuses.
+
 ## 4. Stack design (rappel)
 
 Tailwind + tokens CSS (HSL/variables) · composants maison · **next/font** pour les faces choisies (self-host si besoin) · Framer Motion pour la motion. Dark mode obligatoire. Accessibilité (contrastes AA).

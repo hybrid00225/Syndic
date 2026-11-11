@@ -6,15 +6,22 @@ const TOKEN_KEY = 'syndic_alpha_token';
 
 export function getToken(): string | null {
   if (typeof window === 'undefined') return null;
-  return window.localStorage.getItem(TOKEN_KEY);
+  return (
+    window.localStorage.getItem(TOKEN_KEY) ??
+    window.sessionStorage.getItem(TOKEN_KEY)
+  );
 }
 
-export function setToken(token: string) {
-  window.localStorage.setItem(TOKEN_KEY, token);
+// remember=true → persiste (localStorage) ; sinon session seule (sessionStorage).
+export function setToken(token: string, remember = true) {
+  clearToken();
+  if (remember) window.localStorage.setItem(TOKEN_KEY, token);
+  else window.sessionStorage.setItem(TOKEN_KEY, token);
 }
 
 export function clearToken() {
   window.localStorage.removeItem(TOKEN_KEY);
+  window.sessionStorage.removeItem(TOKEN_KEY);
 }
 
 export class ApiError extends Error {

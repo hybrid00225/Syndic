@@ -20,8 +20,12 @@ export interface AuthUser {
 interface AuthContextValue {
   user: AuthUser | null;
   loading: boolean;
-  login: (email: string, motDePasse: string) => Promise<void>;
-  register: (dto: RegisterInput) => Promise<void>;
+  login: (
+    email: string,
+    motDePasse: string,
+    remember?: boolean,
+  ) => Promise<void>;
+  register: (dto: RegisterInput, remember?: boolean) => Promise<void>;
   logout: () => void;
 }
 
@@ -51,31 +55,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const handleAuth = useCallback(
-    async (token: string, u: AuthUser) => {
-      setToken(token);
+    (token: string, u: AuthUser, remember: boolean) => {
+      setToken(token, remember);
       setUser(u);
     },
     [],
   );
 
   const login = useCallback(
-    async (email: string, motDePasse: string) => {
+    async (email: string, motDePasse: string, remember = true) => {
       const res = await api<{ token: string; user: AuthUser }>('/auth/login', {
         method: 'POST',
         body: JSON.stringify({ email, motDePasse }),
       });
-      await handleAuth(res.token, res.user);
+      handleAuth(res.token, res.user, remember);
     },
     [handleAuth],
   );
 
   const register = useCallback(
-    async (dto: RegisterInput) => {
+    async (dto: RegisterInput, remember = true) => {
       const res = await api<{ token: string; user: AuthUser }>(
         '/auth/register',
         { method: 'POST', body: JSON.stringify(dto) },
       );
-      await handleAuth(res.token, res.user);
+      handleAuth(res.token, res.user, remember);
     },
     [handleAuth],
   );
