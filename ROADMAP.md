@@ -12,7 +12,8 @@ Dernière mise à jour : 2026-11-11.
 
 | Statut | Étape |
 |---|---|
-| 🟨 | Initialiser le dépôt git |
+| ✅ | Initialiser le dépôt git |
+| 🟨 | Concevoir le modèle de données du cœur (`docs/data-model.md`) |
 | ⬜ | Mettre en place le monorepo (backend NestJS + web Next.js + packages partagés) |
 | ⬜ | Configurer PostgreSQL + Prisma + migrations |
 | ⬜ | Auth + RBAC multi-copropriété + RLS |
