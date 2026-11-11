@@ -11,6 +11,9 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  // CORS : le front (Next.js) appelle l'API depuis un autre port.
+  app.enableCors({ origin: true });
+
   // Validation automatique des DTO sur toutes les routes.
   app.useGlobalPipes(
     new ValidationPipe({ whitelist: true, transform: true }),

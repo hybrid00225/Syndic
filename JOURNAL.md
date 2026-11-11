@@ -111,5 +111,14 @@
 
 **Couche transverse complète** : Auth + RBAC + isolation tenant + AuditLog.
 
+**Front — fondations (fait, session 1) :**
+- `apps/web` : **Next.js 14** (App Router, TS) + **Tailwind** dans le monorepo (npm workspaces). Port dev **3001**. CORS activé côté API (main.ts).
+- **Design System** : tokens HSL (marque violet + accent ambre), dark mode complet (toggle + anti-flash), police système, fond dégradé subtil. Composants `src/components/ui` : Button, Card, Input/Label/Select, Badge, Spinner. Helpers `cn`, `formatFCFA`, `formatDate`.
+- **Auth front** : `lib/api.ts` (client + token localStorage), `lib/auth.tsx` (contexte + login/register/me). Écran `/login` en 2 panneaux (marque + formulaire, onglets connexion/inscription).
+- **Shell + écrans** : layout authentifié avec sidebar (garde client), **Dashboard** (tuiles stats + copros récentes, vraies données API), **Copropriétés** (liste + création modale). Stubs Copropriétaires/Appels/Impayés.
+- Vérifié : `npm run web:build` OK (10 routes), serveur lance, /login servie, routes 200.
+- Commandes : `npm run web:dev` (front 3001) + `npm run api:dev` (API 3000) + `npm run db:up`.
+
 **Prochaine étape :**
-- **Slice PDF** (relevé d'appel + reçu + relance) ; ou le **front** (Design System Dribbble/Pinterest) ; ou durcir la sécu (**RLS** + isolation par id d'entité).
+- Étoffer le front (écrans Copropriétaires, Appels de fonds avec génération, Impayés — le backend est prêt).
+- Slice **PDF** ; durcir la sécu (**RLS**).

@@ -19,7 +19,7 @@ Dernière mise à jour : 2026-11-11.
 | ✅ | Auth (JWT + bcrypt) + RBAC (rôles/copro + admin syndic) — `syndicId` dérivé du token |
 | 🟨 | Isolation multi-tenant : TenantGuard sur `:coproprieteId` ✅ · _RLS PostgreSQL + isolation par id d'entité = à compléter_ |
 | ✅ | Journal d'audit *append-only* (intercepteur global, auteur/entité/action/après) |
-| ⬜ | Design System de base (tokens, Tailwind, 1er composants) — qualité Dribbble/Pinterest |
+| ✅ | Front : Next.js + **Design System** (tokens, dark mode, composants) + Auth (login/register) + écrans Dashboard & Copropriétés |
 
 > Web (Next.js) et packages partagés : ajoutés plus tard, quand on attaquera le front d'un module.
 
