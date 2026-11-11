@@ -93,15 +93,34 @@ enum CoproprieteStatut {
   CLOTUREE
 }
 
+// Règle 1.7 : bâtiments résidentiels, commerciaux ou mixtes.
+enum CoproprieteType {
+  RESIDENTIEL
+  COMMERCIAL
+  MIXTE
+}
+
+// Règle 1.18 : syndic professionnel ou bénévole.
+enum NatureSyndic {
+  PROFESSIONNEL
+  BENEVOLE
+}
+
 model Copropriete {
-  id           String            @id @default(uuid())
-  syndicId     String
-  nom          String
-  pays         String // code ISO — pilote les règles juridiques de CETTE copropriété
-  adresse      String?
-  devise       String            @default("XOF")
-  statut       CoproprieteStatut @default(EN_CREATION)
-  dateCreation DateTime          @default(now())
+  id                   String            @id @default(uuid())
+  syndicId             String
+  nom                  String
+  reference            String? // code / identifiant interne
+  type                 CoproprieteType   @default(RESIDENTIEL) // règle 1.7
+  pays                 String // code ISO — pilote les règles juridiques de CETTE copropriété
+  adresse              String?
+  ensembleImmobilier   String? // rattachement résidence / ensemble (règle 1.16)
+  devise               String            @default("XOF") // règle 1.13
+  natureSyndic         NatureSyndic      @default(PROFESSIONNEL) // règle 1.18
+  description          String?
+  statut               CoproprieteStatut @default(EN_CREATION) // règle 1.15
+  dateCreation         DateTime          @default(now()) // règle 1.14
+  dateMiseExploitation DateTime? // règle 1.14
 
   syndic    Syndic                @relation(fields: [syndicId], references: [id])
   batiments Batiment[]

@@ -2,37 +2,62 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Building2, MapPin, Wallet, FileText } from 'lucide-react';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
-import { PAYS, STATUTS_COPRO } from '@/lib/constants';
+import {
+  PAYS,
+  STATUTS_COPRO,
+  TYPES_COPRO,
+  NATURE_SYNDIC,
+  DEVISES,
+} from '@/lib/constants';
 import { cn } from '@/lib/utils';
 
 export interface CoproValues {
   nom: string;
+  reference: string;
+  type: string;
   pays: string;
   adresse: string;
+  ensembleImmobilier: string;
+  devise: string;
+  natureSyndic: string;
+  description: string;
+  dateMiseExploitation: string;
   statut?: string;
 }
 
-const selectCls =
+const EMPTY: CoproValues = {
+  nom: '',
+  reference: '',
+  type: 'RESIDENTIEL',
+  pays: 'CI',
+  adresse: '',
+  ensembleImmobilier: '',
+  devise: 'XOF',
+  natureSyndic: 'PROFESSIONNEL',
+  description: '',
+  dateMiseExploitation: '',
+  statut: 'EN_CREATION',
+};
+
+const ctrl =
   'flex h-10 w-full rounded-lg border border-input bg-card px-3 text-sm focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30';
 
-// Formulaire partagé création / édition (en PAGE, pas en modal).
 export function CoproForm({
   initial,
   mode,
   coproprieteId,
 }: {
-  initial?: CoproValues;
+  initial?: Partial<CoproValues>;
   mode: 'create' | 'edit';
   coproprieteId?: string;
 }) {
   const router = useRouter();
-  const [form, setForm] = useState<CoproValues>(
-    initial ?? { nom: '', pays: 'CI', adresse: '', statut: 'EN_CREATION' },
-  );
+  const [form, setForm] = useState<CoproValues>({ ...EMPTY, ...initial });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const set = (k: keyof CoproValues, v: string) =>
@@ -45,8 +70,15 @@ export function CoproForm({
     try {
       const body = {
         nom: form.nom,
+        reference: form.reference || undefined,
+        type: form.type,
         pays: form.pays,
         adresse: form.adresse || undefined,
+        ensembleImmobilier: form.ensembleImmobilier || undefined,
+        devise: form.devise,
+        natureSyndic: form.natureSyndic,
+        description: form.description || undefined,
+        dateMiseExploitation: form.dateMiseExploitation || undefined,
         ...(mode === 'edit' ? { statut: form.statut } : {}),
       };
       if (mode === 'create') {
@@ -57,7 +89,7 @@ export function CoproForm({
           body: JSON.stringify(body),
         });
       }
-      router.push('/coproprietes');
+      router.push(mode === 'edit' ? `/coproprietes/${coproprieteId}` : '/coproprietes');
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur');
@@ -67,60 +99,149 @@ export function CoproForm({
   };
 
   return (
-    <form onSubmit={submit} className="max-w-2xl space-y-6">
-      <div className="rounded-xl border border-border bg-card p-6 shadow-soft">
-        <h2 className="text-sm font-semibold">Informations générales</h2>
-        <div className="mt-4 grid gap-4 sm:grid-cols-2">
-          <div className="sm:col-span-2">
-            <Label>Nom de la copropriété</Label>
-            <Input
-              required
-              autoFocus
-              value={form.nom}
-              onChange={(e) => set('nom', e.target.value)}
-              placeholder="Ex. Résidence Les Palmiers"
-            />
-          </div>
+    <form onSubmit={submit} className="space-y-5">
+      {/* Identité */}
+      <Section icon={Building2} title="Identité" desc="Nom, référence et nature de la copropriété.">
+        <div className="sm:col-span-2">
+          <Label>Nom de la copropriété *</Label>
+          <Input
+            required
+            autoFocus
+            value={form.nom}
+            onChange={(e) => set('nom', e.target.value)}
+            placeholder="Ex. Résidence Les Palmiers"
+          />
+        </div>
+        <div>
+          <Label>Référence interne</Label>
+          <Input
+            value={form.reference}
+            onChange={(e) => set('reference', e.target.value)}
+            placeholder="Ex. COP-001"
+          />
+        </div>
+        <div>
+          <Label>Type</Label>
+          <select
+            className={cn(ctrl, 'cursor-pointer')}
+            value={form.type}
+            onChange={(e) => set('type', e.target.value)}
+          >
+            {TYPES_COPRO.map(([c, l]) => (
+              <option key={c} value={c}>
+                {l}
+              </option>
+            ))}
+          </select>
+        </div>
+      </Section>
+
+      {/* Localisation */}
+      <Section icon={MapPin} title="Localisation" desc="Pays, adresse et rattachement.">
+        <div>
+          <Label>Pays *</Label>
+          <select
+            className={cn(ctrl, 'cursor-pointer')}
+            value={form.pays}
+            onChange={(e) => set('pays', e.target.value)}
+          >
+            {PAYS.map(([c, l]) => (
+              <option key={c} value={c}>
+                {l}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <Label>Ensemble immobilier / résidence</Label>
+          <Input
+            value={form.ensembleImmobilier}
+            onChange={(e) => set('ensembleImmobilier', e.target.value)}
+            placeholder="Ex. Cité des Palmiers"
+          />
+        </div>
+        <div className="sm:col-span-2">
+          <Label>Adresse</Label>
+          <Input
+            value={form.adresse}
+            onChange={(e) => set('adresse', e.target.value)}
+            placeholder="Quartier, ville"
+          />
+        </div>
+      </Section>
+
+      {/* Paramètres financiers & juridiques */}
+      <Section
+        icon={Wallet}
+        title="Paramètres financiers & administration"
+        desc="Devise, mode de gestion, dates et statut."
+      >
+        <div>
+          <Label>Devise</Label>
+          <select
+            className={cn(ctrl, 'cursor-pointer')}
+            value={form.devise}
+            onChange={(e) => set('devise', e.target.value)}
+          >
+            {DEVISES.map(([c, l]) => (
+              <option key={c} value={c}>
+                {l}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <Label>Administration par un syndic</Label>
+          <select
+            className={cn(ctrl, 'cursor-pointer')}
+            value={form.natureSyndic}
+            onChange={(e) => set('natureSyndic', e.target.value)}
+          >
+            {NATURE_SYNDIC.map(([c, l]) => (
+              <option key={c} value={c}>
+                {l}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <Label>Date de mise en exploitation</Label>
+          <Input
+            type="date"
+            value={form.dateMiseExploitation}
+            onChange={(e) => set('dateMiseExploitation', e.target.value)}
+          />
+        </div>
+        {mode === 'edit' && (
           <div>
-            <Label>Pays</Label>
+            <Label>Statut</Label>
             <select
-              className={cn(selectCls, 'cursor-pointer')}
-              value={form.pays}
-              onChange={(e) => set('pays', e.target.value)}
+              className={cn(ctrl, 'cursor-pointer')}
+              value={form.statut}
+              onChange={(e) => set('statut', e.target.value)}
             >
-              {PAYS.map(([code, nom]) => (
-                <option key={code} value={code}>
-                  {nom}
+              {STATUTS_COPRO.map(([c, l]) => (
+                <option key={c} value={c}>
+                  {l}
                 </option>
               ))}
             </select>
           </div>
-          {mode === 'edit' && (
-            <div>
-              <Label>Statut</Label>
-              <select
-                className={cn(selectCls, 'cursor-pointer')}
-                value={form.statut}
-                onChange={(e) => set('statut', e.target.value)}
-              >
-                {STATUTS_COPRO.map(([code, nom]) => (
-                  <option key={code} value={code}>
-                    {nom}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-          <div className="sm:col-span-2">
-            <Label>Adresse (optionnel)</Label>
-            <Input
-              value={form.adresse}
-              onChange={(e) => set('adresse', e.target.value)}
-              placeholder="Quartier, ville"
-            />
-          </div>
+        )}
+      </Section>
+
+      {/* Description */}
+      <Section icon={FileText} title="Description" desc="Notes libres (parties communes, particularités…).">
+        <div className="sm:col-span-2">
+          <textarea
+            value={form.description}
+            onChange={(e) => set('description', e.target.value)}
+            rows={3}
+            placeholder="Informations complémentaires…"
+            className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
+          />
         </div>
-      </div>
+      </Section>
 
       {error && (
         <p className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">
@@ -132,7 +253,11 @@ export function CoproForm({
         <Button
           type="button"
           variant="secondary"
-          onClick={() => router.push('/coproprietes')}
+          onClick={() =>
+            router.push(
+              mode === 'edit' ? `/coproprietes/${coproprieteId}` : '/coproprietes',
+            )
+          }
         >
           Annuler
         </Button>
@@ -142,5 +267,32 @@ export function CoproForm({
         </Button>
       </div>
     </form>
+  );
+}
+
+function Section({
+  icon: Icon,
+  title,
+  desc,
+  children,
+}: {
+  icon: typeof Building2;
+  title: string;
+  desc: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-xl border border-border bg-card p-5 shadow-soft">
+      <div className="flex items-start gap-3">
+        <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+          <Icon className="h-5 w-5" />
+        </span>
+        <div>
+          <h2 className="text-sm font-semibold">{title}</h2>
+          <p className="text-xs text-muted-foreground">{desc}</p>
+        </div>
+      </div>
+      <div className="mt-4 grid gap-4 sm:grid-cols-2">{children}</div>
+    </div>
   );
 }

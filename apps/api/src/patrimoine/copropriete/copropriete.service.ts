@@ -14,9 +14,17 @@ export class CoproprieteService {
       data: {
         syndicId,
         nom: dto.nom,
+        reference: dto.reference,
+        type: dto.type,
         pays: dto.pays,
-        devise: dto.devise ?? 'XOF',
         adresse: dto.adresse,
+        ensembleImmobilier: dto.ensembleImmobilier,
+        devise: dto.devise ?? 'XOF',
+        natureSyndic: dto.natureSyndic,
+        description: dto.description,
+        dateMiseExploitation: dto.dateMiseExploitation
+          ? new Date(dto.dateMiseExploitation)
+          : undefined,
       },
     });
   }
@@ -41,7 +49,16 @@ export class CoproprieteService {
 
   async update(id: string, dto: UpdateCoproprieteDto) {
     await this.ensureExists(id);
-    return this.prisma.copropriete.update({ where: { id }, data: { ...dto } });
+    const { dateMiseExploitation, ...rest } = dto;
+    return this.prisma.copropriete.update({
+      where: { id },
+      data: {
+        ...rest,
+        ...(dateMiseExploitation !== undefined
+          ? { dateMiseExploitation: new Date(dateMiseExploitation) }
+          : {}),
+      },
+    });
   }
 
   // Utilitaire partagé : garantit l'existence (sinon 404).

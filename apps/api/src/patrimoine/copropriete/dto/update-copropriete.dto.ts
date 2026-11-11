@@ -1,5 +1,9 @@
-import { IsEnum, IsOptional, IsString } from 'class-validator';
-import { CoproprieteStatut } from '@prisma/client';
+import { IsDateString, IsEnum, IsOptional, IsString } from 'class-validator';
+import {
+  CoproprieteStatut,
+  CoproprieteType,
+  NatureSyndic,
+} from '@prisma/client';
 
 export class UpdateCoproprieteDto {
   @IsString()
@@ -8,17 +12,41 @@ export class UpdateCoproprieteDto {
 
   @IsString()
   @IsOptional()
-  pays?: string;
+  reference?: string;
+
+  @IsEnum(CoproprieteType)
+  @IsOptional()
+  type?: CoproprieteType;
 
   @IsString()
   @IsOptional()
-  devise?: string;
+  pays?: string;
 
   @IsString()
   @IsOptional()
   adresse?: string;
 
+  @IsString()
+  @IsOptional()
+  ensembleImmobilier?: string;
+
+  @IsString()
+  @IsOptional()
+  devise?: string;
+
+  @IsEnum(NatureSyndic)
+  @IsOptional()
+  natureSyndic?: NatureSyndic;
+
+  @IsString()
+  @IsOptional()
+  description?: string;
+
   @IsEnum(CoproprieteStatut)
   @IsOptional()
   statut?: CoproprieteStatut;
+
+  @IsDateString()
+  @IsOptional()
+  dateMiseExploitation?: string;
 }
