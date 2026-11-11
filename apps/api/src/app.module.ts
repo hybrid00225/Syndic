@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from './prisma/prisma.module';
 import { AppController } from './app.controller';
 import { AuthModule } from './auth/auth.module';
+import { AuditModule } from './audit/audit.module';
 import { PatrimoineModule } from './patrimoine/patrimoine.module';
 import { ProprieteModule } from './propriete/propriete.module';
 import { TantiemesModule } from './tantiemes/tantiemes.module';
@@ -15,6 +16,7 @@ import { RecouvrementModule } from './recouvrement/recouvrement.module';
     ConfigModule.forRoot({ isGlobal: true }),
     PrismaModule,
     AuthModule,
+    AuditModule,
     PatrimoineModule,
     ProprieteModule,
     TantiemesModule,

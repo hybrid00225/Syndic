@@ -102,5 +102,14 @@
 
 **Reste sur la sécurité (pas fait) :** RLS PostgreSQL + isolation sur les routes keyées par id d'entité (lot/:id, appel/:id, paiement/:id ne sont pas encore vérifiés vs le syndic de l'utilisateur). AuditLog pas encore branché.
 
+**AuditLog (fait, session 1) :**
+- Intercepteur global `AuditInterceptor` (APP_INTERCEPTOR) : journalise chaque opération mutante réussie (POST/PATCH/PUT/DELETE) en fire-and-forget (n'échoue jamais la requête).
+- `AuditService` : écrit dans `AuditLog` (append-only) — syndicId, coproprieteId, userId, entité, action, entiteId, `après` (JSON, BigInt/Date sérialisés). Dérivation entité/action depuis la route (`src/audit/audit-derive.ts`, pure + testée).
+- `GET /audit` (admin) filtrable par entité/instance.
+- Tests : **69/69 verts** (+6). Smoke E2E : CREATE Copropriete/Lot, UPDATE Copropriete tracés ; filtre par entité OK ; `après` stocké.
+- Limite connue : `avant` (image pré-modification) non capturé pour les UPDATE (nécessiterait un pré-fetch / middleware Prisma) — amélioration future.
+
+**Couche transverse complète** : Auth + RBAC + isolation tenant + AuditLog.
+
 **Prochaine étape :**
-- **AuditLog** (traçabilité append-only) ; ou **slice PDF** ; ou le **front** (Design System).
+- **Slice PDF** (relevé d'appel + reçu + relance) ; ou le **front** (Design System Dribbble/Pinterest) ; ou durcir la sécu (**RLS** + isolation par id d'entité).
