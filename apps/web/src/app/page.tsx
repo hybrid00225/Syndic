@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
-import { PageLoader } from '@/components/ui/spinner';
+import { BootLoader } from '@/components/ui/spinner';
 
 export default function Home() {
   const { user, loading } = useAuth();
@@ -14,5 +14,5 @@ export default function Home() {
     router.replace(user ? '/dashboard' : '/login');
   }, [user, loading, router]);
 
-  return <PageLoader />;
+  return <BootLoader />;
 }

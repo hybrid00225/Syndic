@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import { Sidebar } from '@/components/sidebar';
 import { Topbar } from '@/components/topbar';
-import { PageLoader } from '@/components/ui/spinner';
+import { BootLoader } from '@/components/ui/spinner';
 import { ConfirmProvider } from '@/components/ui/confirm';
 
 export default function AppLayout({
@@ -20,7 +20,7 @@ export default function AppLayout({
     if (!loading && !user) router.replace('/login');
   }, [user, loading, router]);
 
-  if (loading || !user) return <PageLoader />;
+  if (loading || !user) return <BootLoader />;
 
   return (
     <ConfirmProvider>

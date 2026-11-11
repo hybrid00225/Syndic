@@ -87,6 +87,8 @@ export class LotService {
         superficie: true,
         statut: true,
         coproprieteId: true,
+        batimentId: true,
+        niveauId: true,
         copropriete: { select: { id: true, nom: true } },
         batiment: { select: { id: true, nom: true } },
       },

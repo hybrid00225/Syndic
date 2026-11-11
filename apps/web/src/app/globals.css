@@ -145,6 +145,66 @@
   }
 }
 
+/* ---------- Loader de marque ---------- */
+.brand-loader .bl-roof,
+.brand-loader .bl-line {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation-duration: 2.2s;
+  animation-iteration-count: infinite;
+  animation-timing-function: cubic-bezier(0.65, 0, 0.35, 1);
+}
+.brand-loader .bl-roof { animation-name: bl-roof; }
+.brand-loader .bl-1 { animation-name: bl-l1; }
+.brand-loader .bl-2 { animation-name: bl-l2; }
+.brand-loader .bl-3 { animation-name: bl-l3; }
+
+@keyframes bl-roof {
+  0% { stroke-dashoffset: 1; opacity: 1; }
+  28%, 80% { stroke-dashoffset: 0; opacity: 1; }
+  100% { stroke-dashoffset: 0; opacity: 0; }
+}
+@keyframes bl-l1 {
+  0%, 22% { stroke-dashoffset: 1; opacity: 1; }
+  42%, 80% { stroke-dashoffset: 0; opacity: 1; }
+  100% { stroke-dashoffset: 0; opacity: 0; }
+}
+@keyframes bl-l2 {
+  0%, 34% { stroke-dashoffset: 1; opacity: 1; }
+  54%, 80% { stroke-dashoffset: 0; opacity: 1; }
+  100% { stroke-dashoffset: 0; opacity: 0; }
+}
+@keyframes bl-l3 {
+  0%, 46% { stroke-dashoffset: 1; opacity: 1; }
+  62%, 80% { stroke-dashoffset: 0; opacity: 1; }
+  100% { stroke-dashoffset: 0; opacity: 0; }
+}
+
+/* N'apparaît qu'après 200 ms : pas de clignotement sur les chargements rapides. */
+.brand-loader-in {
+  animation: bl-appear 0.3s ease-out 0.2s both;
+}
+@keyframes bl-appear {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brand-loader .bl-roof,
+  .brand-loader .bl-line {
+    animation: none !important;
+    stroke-dashoffset: 0;
+  }
+  .brand-loader {
+    animation: bl-breathe 2s ease-in-out infinite !important;
+    animation-duration: 2s !important;
+  }
+}
+@keyframes bl-breathe {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

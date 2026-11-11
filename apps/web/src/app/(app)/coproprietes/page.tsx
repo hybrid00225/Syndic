@@ -9,7 +9,7 @@ import type { Copropriete } from '@/lib/types';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Stats, Stat } from '@/components/ui/stat';
+import { Ledger, Stat, Units } from '@/components/ui/stat';
 import { SearchSelect } from '@/components/ui/select';
 import { Tooltip } from '@/components/ui/tooltip';
 import { useAlert, useConfirm } from '@/components/ui/confirm';
@@ -145,7 +145,8 @@ export default function CoproprietesPage() {
   const actives = copros.filter((c) => c.statut === 'ACTIVE').length;
   const enCreation = copros.filter((c) => c.statut === 'EN_CREATION').length;
   const cloturees = copros.filter((c) => c.statut === 'CLOTUREE').length;
-  const devises = new Set(copros.map((c) => c.devise)).size;
+  const inactives = copros.filter((c) => c.statut === 'INACTIVE').length;
+  const devises = [...new Set(copros.map((c) => c.devise))];
   const hasFilters = !!(q || statut || pays || sort !== 'recent');
 
   const reset = () => {
@@ -201,40 +202,57 @@ export default function CoproprietesPage() {
     <div className="space-y-6">
       {header}
 
-      <Stats>
+      <Ledger>
         <Stat
+          lead
           label="Copropriétés"
           value={copros.length}
-          hint={cloturees ? `dont ${cloturees} clôturée${cloturees > 1 ? 's' : ''}` : 'dans votre portefeuille'}
           info="Toutes les copropriétés gérées, quel que soit leur statut. Cliquez pour retirer le filtre de statut."
           onClick={() => setStatut('')}
           active={!statut}
+          viz={
+            <Units
+              segments={[
+                { label: 'Actives', value: actives, tone: 'ink' },
+                { label: 'En création', value: enCreation, tone: 'warn' },
+                { label: 'Inactives', value: inactives, tone: 'soft' },
+                { label: 'Clôturées', value: cloturees, tone: 'empty' },
+              ]}
+            />
+          }
+          note={
+            <>
+              <span className="nums">{actives}</span> active{actives > 1 ? 's' : ''} ·{' '}
+              <span className="nums">{enCreation}</span> en création ·{' '}
+              <span className="nums">{inactives + cloturees}</span> hors exploitation
+            </>
+          }
         />
         <Stat
           label="En exploitation"
           value={actives}
           unit={`/ ${copros.length}`}
-          progress={copros.length ? actives / copros.length : 0}
           info="Copropriétés au statut « Active ». Cliquez pour filtrer."
           onClick={() => setStatut('ACTIVE')}
           active={statut === 'ACTIVE'}
+          note={`${Math.round((actives / copros.length) * 100)} % du portefeuille`}
         />
         <Stat
           label="À finaliser"
           value={enCreation}
           tone={enCreation > 0 ? 'warning' : 'default'}
-          hint={enCreation > 0 ? 'fiche ou patrimoine incomplet' : 'rien en attente'}
           info="Copropriétés « En création » : à compléter avant le premier appel de fonds. Cliquez pour filtrer."
           onClick={() => setStatut('EN_CREATION')}
           active={statut === 'EN_CREATION'}
+          note={enCreation > 0 ? 'fiche ou patrimoine incomplet' : 'rien en attente'}
         />
         <Stat
-          label="Devises"
-          value={devises}
-          hint={[...new Set(copros.map((c) => c.devise))].join(' · ')}
+          label="Devises tenues"
+          value={devises.length}
           info="Chaque copropriété tient ses comptes dans sa propre devise."
+          note={devises.join(' · ')}
         />
-      </Stats>
+      </Ledger>
 
       <div className="space-y-4">
         <ListToolbar
