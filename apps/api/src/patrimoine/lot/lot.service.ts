@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { LotStatut, LotType, Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CoproprieteService } from '../copropriete/copropriete.service';
 import { CreateLotDto } from './dto/create-lot.dto';
@@ -58,6 +58,39 @@ export class LotService {
         statut: query.statut,
       },
       orderBy: { reference: 'asc' },
+    });
+  }
+
+  // Vue globale : tous les lots des copropriétés du syndic.
+  findAllBySyndic(
+    syndicId: string,
+    query: {
+      coproprieteId?: string;
+      type?: string;
+      statut?: string;
+      batimentId?: string;
+    },
+  ) {
+    return this.prisma.lot.findMany({
+      where: {
+        copropriete: { syndicId },
+        coproprieteId: query.coproprieteId || undefined,
+        type: (query.type as LotType) || undefined,
+        statut: (query.statut as LotStatut) || undefined,
+        batimentId: query.batimentId || undefined,
+      },
+      select: {
+        id: true,
+        reference: true,
+        type: true,
+        designation: true,
+        superficie: true,
+        statut: true,
+        coproprieteId: true,
+        copropriete: { select: { id: true, nom: true } },
+        batiment: { select: { id: true, nom: true } },
+      },
+      orderBy: [{ coproprieteId: 'asc' }, { reference: 'asc' }],
     });
   }
 

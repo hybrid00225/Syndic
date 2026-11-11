@@ -7,14 +7,26 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 import { BatimentService } from './batiment.service';
 import { CreateBatimentDto } from './dto/create-batiment.dto';
 import { UpdateBatimentDto } from './dto/update-batiment.dto';
+import { CurrentUser } from '../../auth/decorators';
+import { AuthUser } from '../../auth/auth-user.interface';
 
 @Controller()
 export class BatimentController {
   constructor(private readonly service: BatimentService) {}
+
+  // Vue globale (tous les bâtiments du syndic).
+  @Get('batiments')
+  findAllGlobal(
+    @CurrentUser() user: AuthUser,
+    @Query('coproprieteId') coproprieteId?: string,
+  ) {
+    return this.service.findAllBySyndic(user.syndicId, coproprieteId);
+  }
 
   @Post('coproprietes/:coproprieteId/batiments')
   create(

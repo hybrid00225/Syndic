@@ -31,6 +31,24 @@ export class BatimentService {
     });
   }
 
+  // Vue globale : tous les bâtiments du syndic (+ compteurs).
+  findAllBySyndic(syndicId: string, coproprieteId?: string) {
+    return this.prisma.batiment.findMany({
+      where: {
+        copropriete: { syndicId },
+        coproprieteId: coproprieteId || undefined,
+      },
+      select: {
+        id: true,
+        nom: true,
+        coproprieteId: true,
+        copropriete: { select: { id: true, nom: true } },
+        _count: { select: { niveaux: true, lots: true } },
+      },
+      orderBy: { nom: 'asc' },
+    });
+  }
+
   async update(id: string, dto: UpdateBatimentDto) {
     await this.ensureExists(id);
     return this.prisma.batiment.update({ where: { id }, data: { ...dto } });

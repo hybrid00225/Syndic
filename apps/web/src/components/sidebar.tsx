@@ -6,6 +6,8 @@ import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard,
   Home,
+  Building,
+  Building2,
   Users,
   ReceiptText,
   AlertTriangle,
@@ -32,7 +34,9 @@ const sections: { title: string; items: Item[] }[] = [
   {
     title: 'Patrimoine',
     items: [
-      { href: '/coproprietes', label: 'Copropriétés', icon: Home },
+      { href: '/coproprietes', label: 'Copropriétés', icon: Building },
+      { href: '/batiments', label: 'Bâtiments', icon: Building2 },
+      { href: '/lots', label: 'Lots', icon: Home },
       { href: '/coproprietaires', label: 'Copropriétaires', icon: Users },
     ],
   },
