@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import { api } from '@/lib/api';
 import { PageHeader } from '@/components/page-header';
 import { LotForm } from '@/components/lot-form';
+import { LotProprietaires } from '@/components/lot-proprietaires';
 import { PageLoader } from '@/components/ui/spinner';
 
 interface Lot {
@@ -39,7 +40,7 @@ export default function ModifierLotPage() {
         ]}
         title={`Modifier le lot « ${lot.reference} »`}
       />
-      <div className="max-w-3xl">
+      <div className="grid gap-5 lg:grid-cols-2">
         <LotForm
           coproprieteId={id}
           mode="edit"
@@ -54,6 +55,7 @@ export default function ModifierLotPage() {
             niveauId: lot.niveauId ?? '',
           }}
         />
+        <LotProprietaires lotId={lotId} />
       </div>
     </div>
   );

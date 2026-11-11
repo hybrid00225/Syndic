@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseBoolPipe,
@@ -46,4 +47,10 @@ export class DetentionController {
   ) {
     return this.service.update(id, dto);
   }
+
+  @Delete('detentions/:id')
+  remove(@Param('id', ParseUUIDPipe) id: string) {
+    return this.service.remove(id);
+  }
 }
+

@@ -140,6 +140,18 @@ export class DetentionService {
     });
   }
 
+  async remove(id: string) {
+    const d = await this.prisma.detentionPropriete.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+    if (!d) {
+      throw new NotFoundException(`Détention ${id} introuvable`);
+    }
+    await this.prisma.detentionPropriete.delete({ where: { id } });
+    return { id, supprime: true };
+  }
+
   /**
    * RG-13 — vérifie que la somme des quote-parts des détentions de MÊME nature
    * de droit, qui chevauchent la période donnée, ne dépasse pas 1.

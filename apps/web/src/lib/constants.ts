@@ -83,7 +83,37 @@ export const LOT_STATUT_TONE: Record<
   VENDU: 'danger',
 };
 
+// Domaine 3 — personne physique ou morale.
+export const PERSONNE_TYPES: [string, string][] = [
+  ['PHYSIQUE', 'Personne physique'],
+  ['MORALE', 'Personne morale'],
+];
+
+// Coordonnées (règles 3.16 à 3.18).
+export const CONTACT_TYPES: [string, string][] = [
+  ['EMAIL', 'Email'],
+  ['TELEPHONE', 'Téléphone'],
+  ['ADRESSE_POSTALE', 'Adresse postale'],
+];
+
+// Nature du droit détenu (règles 3.7 à 3.10).
+export const NATURE_DROIT: [string, string][] = [
+  ['PLEINE_PROPRIETE', 'Pleine propriété'],
+  ['INDIVISION', 'Indivision'],
+  ['USUFRUIT', 'Usufruit'],
+  ['NUE_PROPRIETE', 'Nue-propriété'],
+];
+
 export const LABELS: Record<string, string> = {
+  PHYSIQUE: 'Personne physique',
+  MORALE: 'Personne morale',
+  EMAIL: 'Email',
+  TELEPHONE: 'Téléphone',
+  ADRESSE_POSTALE: 'Adresse postale',
+  PLEINE_PROPRIETE: 'Pleine propriété',
+  INDIVISION: 'Indivision',
+  USUFRUIT: 'Usufruit',
+  NUE_PROPRIETE: 'Nue-propriété',
   RESIDENTIEL: 'Résidentiel',
   COMMERCIAL: 'Commercial',
   MIXTE: 'Mixte',

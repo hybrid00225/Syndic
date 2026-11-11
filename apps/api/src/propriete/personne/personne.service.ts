@@ -1,10 +1,11 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { isEmail } from 'class-validator';
-import { ContactType } from '@prisma/client';
+import { ContactType, Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreatePersonneDto } from './dto/create-personne.dto';
 import { UpdatePersonneDto } from './dto/update-personne.dto';
@@ -34,6 +35,10 @@ export class PersonneService {
   findAll(syndicId?: string) {
     return this.prisma.personne.findMany({
       where: syndicId ? { syndicId } : undefined,
+      include: {
+        contacts: true,
+        _count: { select: { detentions: true } },
+      },
       orderBy: { nom: 'asc' },
     });
   }
@@ -41,7 +46,22 @@ export class PersonneService {
   async findOne(id: string) {
     const personne = await this.prisma.personne.findUnique({
       where: { id },
-      include: { contacts: true, detentions: true },
+      include: {
+        contacts: true,
+        detentions: {
+          include: {
+            lot: {
+              select: {
+                id: true,
+                reference: true,
+                coproprieteId: true,
+                copropriete: { select: { nom: true } },
+              },
+            },
+          },
+          orderBy: { dateDebut: 'desc' },
+        },
+      },
     });
     if (!personne) {
       throw new NotFoundException(`Personne ${id} introuvable`);
@@ -49,15 +69,57 @@ export class PersonneService {
     return personne;
   }
 
+  // Met à jour l'identité et, si fournis, remplace les contacts.
   async update(id: string, dto: UpdatePersonneDto) {
     await this.ensureExists(id);
-    return this.prisma.personne.update({ where: { id }, data: { ...dto } });
+    (dto.contacts ?? []).forEach((c) => this.validerContact(c));
+    const { contacts, ...identite } = dto;
+
+    if (contacts) {
+      return this.prisma.$transaction(async (tx) => {
+        await tx.contact.deleteMany({ where: { personneId: id } });
+        return tx.personne.update({
+          where: { id },
+          data: {
+            ...identite,
+            contacts: { create: contacts.map((c) => ({ ...c })) },
+          },
+          include: { contacts: true },
+        });
+      });
+    }
+    return this.prisma.personne.update({
+      where: { id },
+      data: { ...identite },
+      include: { contacts: true },
+    });
   }
 
   async addContact(personneId: string, dto: CreateContactDto) {
     await this.ensureExists(personneId);
     this.validerContact(dto);
     return this.prisma.contact.create({ data: { personneId, ...dto } });
+  }
+
+  async remove(id: string) {
+    await this.ensureExists(id);
+    try {
+      await this.prisma.$transaction(async (tx) => {
+        await tx.contact.deleteMany({ where: { personneId: id } });
+        await tx.personne.delete({ where: { id } });
+      });
+      return { id, supprime: true };
+    } catch (e) {
+      if (
+        e instanceof Prisma.PrismaClientKnownRequestError &&
+        e.code === 'P2003'
+      ) {
+        throw new ConflictException(
+          'Ce copropriétaire détient des lots ou est lié à des paiements : retirez ces liens avant de le supprimer.',
+        );
+      }
+      throw e;
+    }
   }
 
   async ensureExists(id: string) {
