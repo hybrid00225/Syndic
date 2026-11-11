@@ -57,5 +57,14 @@
 - Autres contrôles : RG-10 (personne+lot même syndic → 400), RG-11 (quote-part valide), RG-12 (dateFin > dateDebut), RG-15 (email valide).
 - Tests : **27/27 verts** (12 fraction, 7 détention, 8 patrimoine). Smoke test HTTP OK : 3/5 + 3/5 → 409, 3/5 + 2/5 = 1 → OK, lot à 2 copropriétaires.
 
-**Prochaine étape (à décider) :**
-- Module **03 — Clés de répartition & tantièmes** (versionnés) ; ou le **front** (Design System + écrans Patrimoine/Copropriétaires).
+**Module 03 — Clés de répartition & tantièmes (fait, session 1) :**
+- Spec `docs/specs/03-tantiemes.md` (RG-17 → RG-23).
+- Schéma : `CleRepartition`, `CleRepartitionVersion` (versionnée), `Tantieme` (migration `add_cle_version_tantieme`).
+- Utilitaire `src/common/repartition.ts` : répartition d'un montant **entier** par tantièmes, **méthode du plus fort reste** → somme exacte (ex. 100 sur 1/1/1 = 34+33+33).
+- API : clés (CRUD) + versions (création avec tantièmes, historique, « version applicable à une date »).
+- Logique de **versioning** : créer une nouvelle version clôture la précédente (`dateFin`), pas de chevauchement ; total figé = somme (RG-19) ; isolation copropriété (RG-18) ; unicité lot (RG-20).
+- Tests : **38/38 verts** (+5 répartition, +6 version). Smoke test HTTP OK (v2 clôture v1, applicable?date renvoie la bonne version).
+
+**Prochaine étape (le gros morceau du MVP) :**
+- Module **04 — Appels de fonds** : génère les contributions par lot via les tantièmes (`repartir`), PDF, numéro unique, statuts. C'est l'aboutissement du cœur financier.
+- Avant : penser à brancher l'**AuditLog** et l'**Auth** (TODO transverses qui s'accumulent).

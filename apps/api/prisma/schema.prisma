@@ -106,6 +106,7 @@ model Copropriete {
   batiments Batiment[]
   lots      Lot[]
   roles     UserCoproprieteRole[]
+  cles      CleRepartition[]
 
   @@index([syndicId])
 }
@@ -168,6 +169,7 @@ model Lot {
   batiment    Batiment?            @relation(fields: [batimentId], references: [id])
   niveau      Niveau?              @relation(fields: [niveauId], references: [id])
   detentions  DetentionPropriete[]
+  tantiemes   Tantieme[]
 
   @@unique([coproprieteId, reference])
   @@index([coproprieteId])
@@ -246,4 +248,47 @@ model DetentionPropriete {
 
   @@index([lotId, dateDebut])
   @@index([personneId])
+}
+
+// =====================================================================
+// MODULE 03 — CLÉS DE RÉPARTITION & TANTIÈMES (versionnés par période)
+// =====================================================================
+
+model CleRepartition {
+  id            String  @id @default(uuid())
+  coproprieteId String
+  nom           String // ex. "Charges générales", "Ascenseur A"
+  description   String?
+
+  copropriete Copropriete             @relation(fields: [coproprieteId], references: [id])
+  versions    CleRepartitionVersion[]
+
+  @@index([coproprieteId])
+}
+
+// Une clé est VERSIONNÉE : chaque version vaut à partir d'une date d'effet.
+// Un calcul utilise la version applicable à la période (règle 5.15).
+model CleRepartitionVersion {
+  id             String    @id @default(uuid())
+  cleId          String
+  dateEffet      DateTime
+  dateFin        DateTime? // null = version courante
+  totalTantiemes Int // somme figée des tantièmes de cette version
+
+  cle       CleRepartition @relation(fields: [cleId], references: [id])
+  tantiemes Tantieme[]
+
+  @@index([cleId, dateEffet])
+}
+
+model Tantieme {
+  id        String @id @default(uuid())
+  versionId String
+  lotId     String
+  valeur    Int // tantièmes du lot dans cette version de la clé
+
+  version CleRepartitionVersion @relation(fields: [versionId], references: [id])
+  lot     Lot                   @relation(fields: [lotId], references: [id])
+
+  @@unique([versionId, lotId])
 }

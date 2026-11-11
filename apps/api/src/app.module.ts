@@ -4,6 +4,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { AppController } from './app.controller';
 import { PatrimoineModule } from './patrimoine/patrimoine.module';
 import { ProprieteModule } from './propriete/propriete.module';
+import { TantiemesModule } from './tantiemes/tantiemes.module';
 
 @Module({
   imports: [
@@ -11,6 +12,7 @@ import { ProprieteModule } from './propriete/propriete.module';
     PrismaModule,
     PatrimoineModule,
     ProprieteModule,
+    TantiemesModule,
     // Les prochains modules métier seront ajoutés ici, un par un.
   ],
   controllers: [AppController],

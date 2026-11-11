@@ -36,7 +36,7 @@ Dernière mise à jour : 2026-11-11.
 
 | Statut | Étape |
 |---|---|
-| ⬜ | **Clés de répartition & tantièmes** (versionnés par période) |
+| ✅ | **Clés de répartition & tantièmes** (versionnés par période) — spec `docs/specs/03-tantiemes.md` |
 | ⬜ | **Budgets prévisionnels** |
 | ⬜ | **Appels de fonds** (génération, calcul par lot, PDF) |
 | ⬜ | **Encaissements & paiements** (dont Mobile Money, idempotence) |
