@@ -47,6 +47,7 @@ interface Copropriete {
   ensembleImmobilier: string | null;
   devise: string;
   natureSyndic: string;
+  modeRepartition: string;
   description: string | null;
   statut: string;
   dateCreation: string;
@@ -180,6 +181,7 @@ export default function CoproprieteDetailPage() {
               <Info label="Adresse" value={copro.adresse ?? '—'} />
               <Info label="Devise" value={copro.devise} />
               <Info label="Administration" value={LABELS[copro.natureSyndic] ?? copro.natureSyndic} />
+              <Info label="Mode de répartition" value={LABELS[copro.modeRepartition] ?? copro.modeRepartition} />
               <Info
                 label="Statut"
                 value={

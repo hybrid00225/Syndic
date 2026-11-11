@@ -1,20 +1,21 @@
 // Liste internationale (le produit n'est pas restreint à une région).
+// Ordre alphabétique : aucune région n'est privilégiée.
 export const PAYS: [string, string][] = [
-  ['CI', "Côte d'Ivoire"],
-  ['SN', 'Sénégal'],
-  ['CM', 'Cameroun'],
-  ['GA', 'Gabon'],
+  ['BE', 'Belgique'],
   ['BJ', 'Bénin'],
   ['BF', 'Burkina Faso'],
-  ['ML', 'Mali'],
-  ['TG', 'Togo'],
-  ['MA', 'Maroc'],
-  ['TN', 'Tunisie'],
-  ['FR', 'France'],
-  ['BE', 'Belgique'],
-  ['CH', 'Suisse'],
+  ['CM', 'Cameroun'],
   ['CA', 'Canada'],
-  ['Autre', 'Autre'],
+  ['CI', "Côte d'Ivoire"],
+  ['FR', 'France'],
+  ['GA', 'Gabon'],
+  ['ML', 'Mali'],
+  ['MA', 'Maroc'],
+  ['SN', 'Sénégal'],
+  ['CH', 'Suisse'],
+  ['TG', 'Togo'],
+  ['TN', 'Tunisie'],
+  ['Autre', 'Autre pays'],
 ];
 
 export const STATUTS_COPRO: [string, string][] = [
@@ -25,6 +26,13 @@ export const STATUTS_COPRO: [string, string][] = [
 ];
 
 // Règle 1.7 : résidentiel / commercial / mixte.
+export const STATUT_COPRO_TONE: Record<string, 'success' | 'warning' | 'neutral'> = {
+  ACTIVE: 'success',
+  EN_CREATION: 'warning',
+  INACTIVE: 'neutral',
+  CLOTUREE: 'neutral',
+};
+
 export const TYPES_COPRO: [string, string][] = [
   ['RESIDENTIEL', 'Résidentiel'],
   ['COMMERCIAL', 'Commercial'],
@@ -35,6 +43,14 @@ export const TYPES_COPRO: [string, string][] = [
 export const NATURE_SYNDIC: [string, string][] = [
   ['PROFESSIONNEL', 'Professionnel'],
   ['BENEVOLE', 'Bénévole'],
+];
+
+// Mode de génération / répartition des appels (extensions analyse).
+export const MODES_REPARTITION: [string, string][] = [
+  ['TANTIEMES', 'Par tantièmes'],
+  ['CLES_REPARTITION', 'Par clés de répartition'],
+  ['MONTANT_FIXE', 'Par montant fixe'],
+  ['MIXTE', 'Mixte (hybride)'],
 ];
 
 // Règle 1.13 : devise propre à la copropriété.
@@ -119,6 +135,9 @@ export const LABELS: Record<string, string> = {
   MIXTE: 'Mixte',
   PROFESSIONNEL: 'Professionnel',
   BENEVOLE: 'Bénévole',
+  TANTIEMES: 'Par tantièmes',
+  CLES_REPARTITION: 'Par clés de répartition',
+  MONTANT_FIXE: 'Par montant fixe',
   APPARTEMENT: 'Appartement',
   PARKING: 'Parking',
   CAVE: 'Cave',

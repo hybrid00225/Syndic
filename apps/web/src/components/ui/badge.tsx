@@ -1,19 +1,20 @@
 import { cn } from '@/lib/utils';
 
-type Tone = 'neutral' | 'success' | 'warning' | 'danger' | 'info' | 'primary';
+export type Tone = 'neutral' | 'success' | 'warning' | 'danger' | 'info' | 'primary';
 
-const tones: Record<Tone, { chip: string; dot: string }> = {
-  neutral: { chip: 'bg-muted text-muted-foreground', dot: 'bg-muted-foreground' },
-  success: { chip: 'bg-success/12 text-success', dot: 'bg-success' },
-  warning: { chip: 'bg-warning/15 text-warning', dot: 'bg-warning' },
-  danger: { chip: 'bg-danger/12 text-danger', dot: 'bg-danger' },
-  info: { chip: 'bg-info/12 text-info', dot: 'bg-info' },
-  primary: { chip: 'bg-primary/12 text-primary', dot: 'bg-primary' },
+const dots: Record<Tone, string> = {
+  neutral: 'bg-muted-foreground/60',
+  success: 'bg-success',
+  warning: 'bg-warning',
+  danger: 'bg-danger',
+  info: 'bg-info',
+  primary: 'bg-primary',
 };
 
+// Statut sobre : point coloré + texte encre, filet fin. Pas de fond pastel.
 export function Badge({
   tone = 'neutral',
-  dot = false,
+  dot = true,
   className,
   children,
   ...props
@@ -21,15 +22,12 @@ export function Badge({
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium',
-        tones[tone].chip,
+        'inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-border px-2 py-px text-2xs font-medium text-foreground',
         className,
       )}
       {...props}
     >
-      {dot && (
-        <span className={cn('h-1.5 w-1.5 rounded-full', tones[tone].dot)} />
-      )}
+      {dot && <span aria-hidden className={cn('h-1.5 w-1.5 rounded-full', dots[tone])} />}
       {children}
     </span>
   );

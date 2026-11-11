@@ -1,4 +1,5 @@
 @import '@fontsource-variable/hanken-grotesk';
+@import '@fontsource-variable/fraunces/opsz.css';
 
 @tailwind base;
 @tailwind components;
@@ -6,69 +7,81 @@
 
 /* ============================================================
    Design System — Syndic Alpha
-   Clair, aéré, professionnel · marque VERT profond · data-riche.
-   Référence d'ambiance : CRM clair à accents verts.
+   Registre « grand livre » : neutres chauds (os / encre), vert forêt
+   profond utilisé avec parcimonie (action, état actif), filets fins.
+   Pas de lavis pastel, pas de dégradé, pas de carré d'icône décoratif.
+   Display : Fraunces (titres, chiffres clés, wordmark) · UI : Hanken Grotesk.
    ============================================================ */
 @layer base {
   :root {
     --font-sans: 'Hanken Grotesk Variable', ui-sans-serif, system-ui,
       -apple-system, 'Segoe UI', Roboto, sans-serif;
+    --font-display: 'Fraunces Variable', ui-serif, Georgia, serif;
 
-    --background: 150 14% 97%;
-    --foreground: 160 14% 12%;
+    --background: 40 23% 96%;
+    --foreground: 30 12% 10%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 160 14% 12%;
+    --card: 40 33% 99%;
+    --card-foreground: 30 12% 10%;
 
-    --primary: 156 64% 24%;
-    --primary-foreground: 0 0% 100%;
+    /* Vert forêt profond — jamais en lavis clair */
+    --primary: 160 48% 19%;
+    --primary-foreground: 40 33% 98%;
 
-    --accent: 156 42% 38%;
-    --accent-foreground: 0 0% 100%;
+    /* Accent précis (ocre brique) — usage ponctuel */
+    --accent: 22 58% 42%;
+    --accent-foreground: 40 33% 98%;
 
-    --muted: 150 12% 94%;
-    --muted-foreground: 155 8% 42%;
+    --muted: 38 18% 92%;
+    --muted-foreground: 30 7% 38%;
 
-    --success: 152 55% 34%;
-    --warning: 36 82% 44%;
-    --danger: 4 68% 48%;
-    --info: 214 66% 48%;
+    --success: 152 45% 28%;
+    --warning: 32 75% 36%;
+    --danger: 6 60% 42%;
+    --info: 212 40% 36%;
 
-    --border: 150 13% 90%;
-    --input: 150 13% 89%;
-    --ring: 156 64% 24%;
+    --border: 36 14% 85%;
+    --input: 36 14% 78%;
+    --ring: 160 48% 19%;
 
-    --radius: 0.7rem;
+    --radius: 10px;
   }
 
   .dark {
-    --background: 162 16% 7%;
-    --foreground: 150 14% 90%;
+    --background: 30 8% 7%;
+    --foreground: 40 18% 90%;
 
-    --card: 162 13% 10%;
-    --card-foreground: 150 14% 90%;
+    --card: 30 7% 10%;
+    --card-foreground: 40 18% 90%;
 
-    --primary: 154 52% 46%;
-    --primary-foreground: 162 24% 7%;
+    --primary: 152 34% 56%;
+    --primary-foreground: 30 10% 8%;
 
-    --accent: 154 40% 50%;
-    --accent-foreground: 162 24% 7%;
+    --accent: 24 60% 60%;
+    --accent-foreground: 30 10% 8%;
 
-    --muted: 162 11% 15%;
-    --muted-foreground: 150 9% 60%;
+    --muted: 30 6% 15%;
+    --muted-foreground: 36 8% 62%;
 
-    --success: 152 52% 50%;
-    --warning: 36 80% 56%;
-    --danger: 4 70% 62%;
-    --info: 214 70% 62%;
+    --success: 150 38% 54%;
+    --warning: 36 70% 60%;
+    --danger: 6 65% 65%;
+    --info: 212 50% 68%;
 
-    --border: 162 11% 17%;
-    --input: 162 11% 18%;
-    --ring: 154 52% 46%;
+    --border: 30 6% 18%;
+    --input: 30 6% 26%;
+    --ring: 152 34% 56%;
   }
 
   * {
     @apply border-border;
+  }
+
+  html {
+    color-scheme: light;
+  }
+  html.dark {
+    color-scheme: dark;
   }
 
   body {
@@ -77,8 +90,17 @@
 
   /* Chiffres alignés (comptabilité) */
   .nums {
-    font-variant-numeric: tabular-nums;
-    font-feature-settings: 'tnum';
+    font-variant-numeric: tabular-nums lining-nums;
+    font-feature-settings: 'tnum', 'lnum';
+  }
+
+  .font-display {
+    font-optical-sizing: auto;
+    letter-spacing: -0.015em;
+  }
+
+  ::selection {
+    background: hsl(var(--primary) / 0.18);
   }
 }
 
@@ -95,4 +117,39 @@
 ::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--muted-foreground) / 0.38);
   background-clip: content-box;
+}
+
+/* Impression : on n'imprime que le contenu (listes, fiches). */
+@media print {
+  @page {
+    margin: 14mm;
+  }
+  aside,
+  header,
+  .no-print {
+    display: none !important;
+  }
+  html,
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+  main {
+    padding: 0 !important;
+  }
+  table {
+    page-break-inside: auto;
+  }
+  tr {
+    page-break-inside: avoid;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

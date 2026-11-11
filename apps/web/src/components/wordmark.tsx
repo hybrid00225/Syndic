@@ -1,52 +1,52 @@
 import { cn } from '@/lib/utils';
 
-// Logo lockup : badge vert à monogramme + nom (+ sous-titre optionnel).
+/**
+ * Marque dessinée : un toit posé sur les lignes d'un registre
+ * (la copropriété + la comptabilité), sans cartouche.
+ */
+export function LogoMark({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 28 28" fill="none" aria-hidden className={cn('h-7 w-7', className)}>
+      <path
+        d="M3.5 12.5 14 4l10.5 8.5"
+        stroke="currentColor"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path d="M7.5 16h13M7.5 20h13M7.5 24h8" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+// Lockup : marque + « Syndic Alpha » en Fraunces (Alpha en italique).
 export function Wordmark({
   subtitle,
   className,
   size = 'md',
   onDark = false,
+  compact = false,
 }: {
   subtitle?: string;
   className?: string;
   size?: 'md' | 'lg';
   onDark?: boolean;
+  /** Marque seule (sidebar repliée). */
+  compact?: boolean;
 }) {
-  const badge = size === 'lg' ? 'h-11 w-11 text-lg' : 'h-9 w-9 text-base';
   return (
-    <div className={cn('flex items-center gap-2.5', className)}>
-      <div
-        className={cn(
-          'flex items-center justify-center rounded-xl font-semibold shadow-sm',
-          onDark
-            ? 'bg-emerald-500 text-emerald-950'
-            : 'bg-primary text-primary-foreground',
-          badge,
-        )}
-      >
-        S
-      </div>
-      <div className="leading-tight">
-        <div
-          className={cn(
-            'font-semibold tracking-tight',
-            size === 'lg' ? 'text-lg' : 'text-[15px]',
-            onDark && 'text-white',
-          )}
-        >
-          Syndic Alpha
-        </div>
-        {subtitle && (
-          <div
-            className={cn(
-              'text-xs',
-              onDark ? 'text-emerald-100/70' : 'text-muted-foreground',
-            )}
-          >
-            {subtitle}
+    <div className={cn('flex items-center gap-2.5', onDark ? 'text-white' : 'text-foreground', className)}>
+      <LogoMark className={cn(size === 'lg' ? 'h-8 w-8' : 'h-7 w-7', onDark ? 'text-white' : 'text-primary')} />
+      {!compact && (
+        <div className="leading-none">
+          <div className={cn('font-display font-medium tracking-tight', size === 'lg' ? 'text-2xl' : 'text-lg')}>
+            Syndic <span className={cn('italic', onDark ? 'text-white/70' : 'text-muted-foreground')}>Alpha</span>
           </div>
-        )}
-      </div>
+          {subtitle && (
+            <div className={cn('mt-1 text-2xs', onDark ? 'text-white/55' : 'text-muted-foreground')}>{subtitle}</div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

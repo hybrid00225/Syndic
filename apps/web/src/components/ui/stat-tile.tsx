@@ -3,11 +3,11 @@ import { cn } from '@/lib/utils';
 
 type Tone = 'primary' | 'success' | 'warning' | 'info';
 
-const toneCls: Record<Tone, { wash: string; chip: string }> = {
-  primary: { wash: 'bg-primary/[0.04]', chip: 'bg-primary/10 text-primary' },
-  success: { wash: 'bg-success/[0.05]', chip: 'bg-success/12 text-success' },
-  warning: { wash: 'bg-warning/[0.06]', chip: 'bg-warning/15 text-warning' },
-  info: { wash: 'bg-info/[0.05]', chip: 'bg-info/12 text-info' },
+const accent: Record<Tone, string> = {
+  primary: 'border-l-primary',
+  success: 'border-l-success',
+  warning: 'border-l-warning',
+  info: 'border-l-info',
 };
 
 interface StatTileProps {
@@ -21,6 +21,7 @@ interface StatTileProps {
   active?: boolean;
 }
 
+// KPI sobre : filet d'accent à gauche, chiffre en Fraunces, pas de lavis.
 export function StatTile({
   label,
   value,
@@ -31,57 +32,36 @@ export function StatTile({
   onClick,
   active = false,
 }: StatTileProps) {
-  const clickable = !!onClick;
-
-  const content = filled ? (
+  const cls = cn(
+    'rounded-lg border border-border border-l-2 bg-card p-4 text-left transition-colors',
+    accent[filled ? 'primary' : tone],
+    onClick && 'cursor-pointer hover:bg-muted/40',
+    active && 'ring-1 ring-primary',
+  );
+  const inner = (
     <>
-      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/15 text-white">
-        <Icon className="h-5 w-5" />
-      </span>
-      <div className="min-w-0">
-        <div className="text-[2rem] font-bold leading-none tracking-tight nums">
-          {value}
-        </div>
-        <div className="mt-1 text-sm text-white/80">{label}</div>
+      <div className="flex items-center gap-1.5 text-2xs font-medium uppercase tracking-wide text-muted-foreground">
+        <Icon className="h-3.5 w-3.5" aria-hidden />
+        {label}
       </div>
-    </>
-  ) : (
-    <>
-      <span
+      <div
         className={cn(
-          'flex h-11 w-11 shrink-0 items-center justify-center rounded-xl',
-          toneCls[tone].chip,
+          'mt-2 font-display text-[1.9rem] font-semibold leading-none nums',
+          filled ? 'text-primary' : 'text-foreground',
         )}
       >
-        <Icon className="h-5 w-5" />
-      </span>
-      <div className="min-w-0">
-        <div className="text-[2rem] font-bold leading-none tracking-tight nums">
-          {value}
-        </div>
-        <div className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
-          {label}
-          {hint && <span className="text-xs text-muted-foreground/70">· {hint}</span>}
-        </div>
+        {value}
       </div>
+      {hint && <div className="mt-1.5 text-2xs text-muted-foreground">{hint}</div>}
     </>
   );
 
-  const cls = cn(
-    'flex items-center gap-4 rounded-xl border p-4 text-left transition',
-    filled
-      ? 'border-transparent bg-gradient-to-br from-primary to-emerald-700 text-white shadow-soft'
-      : cn('border-border', toneCls[tone].wash),
-    clickable && 'hover:shadow-soft cursor-pointer',
-    active && !filled && 'ring-2 ring-primary ring-offset-1 ring-offset-background',
-  );
-
-  if (clickable) {
+  if (onClick) {
     return (
       <button type="button" onClick={onClick} className={cls}>
-        {content}
+        {inner}
       </button>
     );
   }
-  return <div className={cls}>{content}</div>;
+  return <div className={cls}>{inner}</div>;
 }

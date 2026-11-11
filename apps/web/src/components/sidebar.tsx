@@ -13,18 +13,21 @@ import {
   AlertTriangle,
   LogOut,
   Search,
-  ChevronLeft,
-  Settings,
-  Moon,
+  PanelLeftClose,
+  PanelLeftOpen,
+  ChevronsUpDown,
   Sun,
+  Moon,
+  Monitor,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
+import { useTheme, type ThemeMode } from '@/lib/theme';
 import { Wordmark } from '@/components/wordmark';
 import { Tooltip } from '@/components/ui/tooltip';
 import { useConfirm } from '@/components/ui/confirm';
 import { cn } from '@/lib/utils';
 
-type Item = { href: string; label: string; icon: typeof Home };
+type Item = { href: string; label: string; icon: typeof Home; soon?: boolean };
 
 const sections: { title: string; items: Item[] }[] = [
   {
@@ -43,217 +46,237 @@ const sections: { title: string; items: Item[] }[] = [
   {
     title: 'Finances',
     items: [
-      { href: '/appels', label: 'Appels de fonds', icon: ReceiptText },
-      { href: '/impayes', label: 'Impayés', icon: AlertTriangle },
+      { href: '/appels', label: 'Appels de fonds', icon: ReceiptText, soon: true },
+      { href: '/impayes', label: 'Impayés', icon: AlertTriangle, soon: true },
     ],
   },
 ];
 
 const COLLAPSE_KEY = 'syndic_alpha_sidebar_collapsed';
 
+export function initiales(nom?: string | null) {
+  if (!nom) return '?';
+  const parts = nom.trim().split(/\s+/);
+  return ((parts[0]?.[0] ?? '') + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase();
+}
+
 export function Sidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
   const confirm = useConfirm();
   const [collapsed, setCollapsed] = useState(false);
-
-  const handleLogout = async () => {
-    const ok = await confirm({
-      title: 'Se déconnecter ?',
-      description:
-        'Vous allez quitter votre session. Les éléments non enregistrés seront perdus.',
-      nextAction: "Vous reviendrez à l'écran de connexion.",
-      confirmLabel: 'Se déconnecter',
-      tone: 'danger',
-    });
-    if (ok) logout();
-  };
   const [query, setQuery] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const filterRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    setCollapsed(localStorage.getItem(COLLAPSE_KEY) === '1');
+    try {
+      setCollapsed(localStorage.getItem(COLLAPSE_KEY) === '1');
+    } catch {
+      /* ignore */
+    }
   }, []);
 
-  const toggleCollapse = () => {
-    setCollapsed((c) => {
-      localStorage.setItem(COLLAPSE_KEY, c ? '0' : '1');
-      return !c;
-    });
+  const setCollapse = (c: boolean) => {
+    setCollapsed(c);
+    try {
+      localStorage.setItem(COLLAPSE_KEY, c ? '1' : '0');
+    } catch {
+      /* ignore */
+    }
     setMenuOpen(false);
   };
 
-  // fermeture du menu au clic extérieur
   useEffect(() => {
     if (!menuOpen) return;
     const onClick = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuOpen(false);
-      }
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
     };
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setMenuOpen(false);
     document.addEventListener('mousedown', onClick);
-    return () => document.removeEventListener('mousedown', onClick);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onClick);
+      document.removeEventListener('keydown', onKey);
+    };
   }, [menuOpen]);
+
+  const handleLogout = async () => {
+    setMenuOpen(false);
+    const ok = await confirm({
+      title: 'Se déconnecter ?',
+      description: 'Votre session sera fermée sur cet appareil. Les saisies non enregistrées seront perdues.',
+      nextAction: "Retour à l'écran de connexion.",
+      confirmLabel: 'Se déconnecter',
+    });
+    if (ok) logout();
+  };
 
   const q = query.trim().toLowerCase();
   const filtered = sections
-    .map((s) => ({
-      ...s,
-      items: q
-        ? s.items.filter((i) => i.label.toLowerCase().includes(q))
-        : s.items,
-    }))
+    .map((s) => ({ ...s, items: q ? s.items.filter((i) => i.label.toLowerCase().includes(q)) : s.items }))
     .filter((s) => s.items.length > 0);
 
   return (
     <aside
       className={cn(
-        'sticky top-0 z-40 flex h-screen shrink-0 flex-col border-r border-border bg-card transition-[width] duration-200',
-        collapsed ? 'w-[68px]' : 'w-64',
+        'sticky top-0 z-40 flex h-screen shrink-0 flex-col border-r border-border bg-background transition-[width] duration-200',
+        collapsed ? 'w-[64px]' : 'w-60',
       )}
     >
       {/* En-tête */}
-      <div
-        className={cn(
-          'relative flex h-16 items-center border-b border-border',
-          collapsed ? 'justify-center px-0' : 'px-5',
-        )}
-      >
-        {collapsed ? (
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-base font-semibold text-primary-foreground shadow-sm">
-            S
-          </div>
-        ) : (
-          <Wordmark subtitle="Copropriété" />
-        )}
-
-        {/* bouton replier/déplier (sur le bord) */}
-        <div className="absolute -right-3 top-1/2 z-50 -translate-y-1/2">
-          <Tooltip label={collapsed ? 'Déplier le menu' : 'Replier le menu'} side="right">
+      <div className={cn('flex h-16 items-center', collapsed ? 'justify-center' : 'justify-between pl-5 pr-2')}>
+        <Link href="/dashboard" aria-label="Syndic Alpha — tableau de bord" className="rounded-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
+          <Wordmark compact={collapsed} />
+        </Link>
+        {!collapsed && (
+          <Tooltip label="Replier le menu" side="bottom">
             <button
-              onClick={toggleCollapse}
-              aria-label={collapsed ? 'Déplier le menu' : 'Replier le menu'}
-              className="flex h-6 w-6 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-sm transition hover:text-foreground"
+              type="button"
+              onClick={() => setCollapse(true)}
+              className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             >
-              <ChevronLeft
-                className={cn('h-4 w-4 transition-transform', collapsed && 'rotate-180')}
-              />
+              <PanelLeftClose className="h-4 w-4" />
             </button>
           </Tooltip>
-        </div>
+        )}
       </div>
 
       {/* Filtre */}
-      <div className={cn('px-3 pt-3', collapsed && 'px-2')}>
+      <div className={cn('pb-2', collapsed ? 'px-2' : 'px-3')}>
         {collapsed ? (
-          <button
-            onClick={toggleCollapse}
-            aria-label="Rechercher"
-            className="flex h-9 w-full items-center justify-center rounded-lg text-muted-foreground transition hover:bg-muted hover:text-foreground"
-          >
-            <Search className="h-[18px] w-[18px]" />
-          </button>
+          <div className="flex flex-col items-center gap-1">
+            <Tooltip label="Déplier le menu" side="right">
+              <button
+                type="button"
+                onClick={() => setCollapse(false)}
+                className="flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              >
+                <PanelLeftOpen className="h-[18px] w-[18px]" />
+              </button>
+            </Tooltip>
+            <Tooltip label="Filtrer le menu" side="right">
+              <button
+                type="button"
+                onClick={() => {
+                  setCollapse(false);
+                  setTimeout(() => filterRef.current?.focus(), 220);
+                }}
+                className="flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              >
+                <Search className="h-[18px] w-[18px]" />
+              </button>
+            </Tooltip>
+          </div>
         ) : (
           <div className="relative">
-            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Search aria-hidden className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
+              ref={filterRef}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Filtrer le menu…"
-              className="h-9 w-full rounded-lg border border-border bg-background pl-8 pr-3 text-sm placeholder:text-muted-foreground/70 focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/25"
+              aria-label="Filtrer le menu"
+              className="h-9 w-full rounded-md border border-input bg-card pl-8 pr-3 text-ui placeholder:text-muted-foreground/70 focus-visible:border-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
             />
           </div>
         )}
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 space-y-4 overflow-y-auto px-3 py-4">
-        {filtered.length === 0 && (
-          <p className="px-3 text-sm text-muted-foreground">Aucun résultat.</p>
-        )}
+      <nav aria-label="Navigation principale" className="flex-1 space-y-5 overflow-y-auto px-3 py-3">
+        {filtered.length === 0 && <p className="px-2 text-ui text-muted-foreground">Aucun résultat.</p>}
         {filtered.map((section, i) => (
           <div key={section.title}>
             {collapsed ? (
-              i > 0 && <div className="mx-auto mb-3 h-px w-6 bg-border" />
+              i > 0 && <div aria-hidden className="mx-auto mb-3 h-px w-6 bg-border" />
             ) : (
-              <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">
-                {section.title}
-              </p>
+              <p className="px-2 pb-1.5 text-2xs font-medium text-muted-foreground">{section.title}</p>
             )}
-            <div className="space-y-0.5">
+            <ul className="space-y-px">
               {section.items.map((item) => {
-                const active =
-                  pathname === item.href || pathname.startsWith(item.href + '/');
+                const active = pathname === item.href || pathname.startsWith(item.href + '/');
                 const Icon = item.icon;
-                return (
-                  <div key={item.href} className="group relative">
-                    <Link
-                      href={item.href}
-                      className={cn(
-                        'flex items-center rounded-lg text-sm font-medium transition-colors',
-                        collapsed
-                          ? 'h-10 w-10 mx-auto justify-center'
-                          : 'gap-3 px-3 py-2',
-                        active
-                          ? 'bg-primary/10 text-primary'
-                          : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-                      )}
-                    >
-                      <Icon className="h-[18px] w-[18px] shrink-0" />
-                      {!collapsed && <span>{item.label}</span>}
-                    </Link>
-                    {collapsed && (
-                      <span className="pointer-events-none absolute left-full top-1/2 z-50 ml-2 -translate-y-1/2 whitespace-nowrap rounded-md bg-foreground px-2 py-1 text-xs font-medium text-background opacity-0 shadow-md transition group-hover:opacity-100">
-                        {item.label}
-                      </span>
+                const link = (
+                  <Link
+                    href={item.href}
+                    aria-current={active ? 'page' : undefined}
+                    aria-label={collapsed ? item.label : undefined}
+                    className={cn(
+                      'relative flex items-center rounded-md text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
+                      collapsed ? 'mx-auto h-9 w-9 justify-center' : 'gap-2.5 px-2 py-1.5',
+                      active
+                        ? 'bg-card font-medium text-foreground shadow-soft ring-1 ring-border'
+                        : 'text-muted-foreground hover:bg-muted hover:text-foreground',
                     )}
-                  </div>
+                  >
+                    <Icon aria-hidden className={cn('h-4 w-4 shrink-0', active && 'text-primary')} />
+                    {!collapsed && <span className="flex-1">{item.label}</span>}
+                    {!collapsed && item.soon && (
+                      <span className="text-2xs text-muted-foreground/80">bientôt</span>
+                    )}
+                  </Link>
+                );
+                return (
+                  <li key={item.href}>
+                    {collapsed ? (
+                      <Tooltip label={item.soon ? `${item.label} (bientôt)` : item.label} side="right" className="flex">
+                        {link}
+                      </Tooltip>
+                    ) : (
+                      link
+                    )}
+                  </li>
                 );
               })}
-            </div>
+            </ul>
           </div>
         ))}
       </nav>
 
       {/* Pied : menu utilisateur */}
-      <div className="border-t border-border p-3" ref={menuRef}>
+      <div className="border-t border-border p-2" ref={menuRef}>
         <div className="relative">
           <button
+            type="button"
             onClick={() => setMenuOpen((o) => !o)}
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
+            aria-label={collapsed ? 'Menu du compte' : undefined}
             className={cn(
-              'flex w-full items-center gap-2.5 rounded-lg p-1.5 text-left transition hover:bg-muted',
+              'flex w-full items-center gap-2.5 rounded-md p-1.5 text-left transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
               collapsed && 'justify-center',
             )}
           >
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
-              {user?.nom?.charAt(0).toUpperCase() ?? '?'}
-            </div>
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-foreground text-2xs font-semibold text-background">
+              {initiales(user?.nom)}
+            </span>
             {!collapsed && (
               <>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">{user?.nom}</p>
-                  <p className="truncate text-xs text-muted-foreground">
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-ui font-medium">{user?.nom}</span>
+                  <span className="block truncate text-2xs text-muted-foreground">
                     {user?.adminSyndic ? 'Administrateur' : 'Gestionnaire'}
-                  </p>
-                </div>
-                <Settings className="h-4 w-4 text-muted-foreground" />
+                  </span>
+                </span>
+                <ChevronsUpDown aria-hidden className="h-4 w-4 text-muted-foreground" />
               </>
             )}
           </button>
 
-          {menuOpen && (
-            <UserMenu
-              collapsed={collapsed}
-              email={user?.email}
-              onLogout={handleLogout}
-            />
-          )}
+          {menuOpen && <UserMenu collapsed={collapsed} email={user?.email} onLogout={handleLogout} />}
         </div>
       </div>
     </aside>
   );
 }
+
+const THEMES: [ThemeMode, string, typeof Sun][] = [
+  ['light', 'Clair', Sun],
+  ['dark', 'Sombre', Moon],
+  ['system', 'Système', Monitor],
+];
 
 function UserMenu({
   collapsed,
@@ -264,43 +287,52 @@ function UserMenu({
   email?: string;
   onLogout: () => void;
 }) {
-  const [dark, setDark] = useState(false);
-  useEffect(() => {
-    setDark(document.documentElement.classList.contains('dark'));
-  }, []);
-  const toggleTheme = () => {
-    const next = !dark;
-    setDark(next);
-    document.documentElement.classList.toggle('dark', next);
-    localStorage.setItem('syndic_alpha_theme', next ? 'dark' : 'light');
-  };
-
+  const [theme, setTheme] = useTheme();
   return (
     <div
+      role="menu"
       className={cn(
-        'absolute z-50 w-56 overflow-hidden rounded-xl border border-border bg-card shadow-lift',
+        'absolute z-50 w-60 animate-pop-in overflow-hidden rounded-lg border border-border bg-card shadow-lift',
         collapsed ? 'bottom-0 left-full ml-2' : 'bottom-full left-0 mb-2',
       )}
     >
       {email && (
         <div className="border-b border-border px-3 py-2.5">
-          <p className="text-xs text-muted-foreground">Connecté en tant que</p>
-          <p className="truncate text-sm font-medium">{email}</p>
+          <p className="text-2xs text-muted-foreground">Connecté en tant que</p>
+          <p className="truncate text-ui font-medium">{email}</p>
         </div>
       )}
+      <div className="border-b border-border p-3">
+        <p className="mb-2 text-2xs text-muted-foreground">Apparence</p>
+        <div className="grid grid-cols-3 gap-1">
+          {THEMES.map(([mode, label, Icon]) => (
+            <button
+              key={mode}
+              type="button"
+              role="menuitemradio"
+              aria-checked={theme === mode}
+              onClick={() => setTheme(mode)}
+              className={cn(
+                'flex flex-col items-center gap-1 rounded-md border py-2 text-2xs transition-colors',
+                theme === mode
+                  ? 'border-foreground text-foreground'
+                  : 'border-border text-muted-foreground hover:text-foreground',
+              )}
+            >
+              <Icon aria-hidden className="h-4 w-4" />
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
       <div className="p-1">
         <button
-          onClick={toggleTheme}
-          className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-foreground transition hover:bg-muted"
-        >
-          {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-          {dark ? 'Thème clair' : 'Thème sombre'}
-        </button>
-        <button
+          type="button"
+          role="menuitem"
           onClick={onLogout}
-          className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-danger transition hover:bg-danger/10"
+          className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-ui text-danger transition-colors hover:bg-danger/10"
         >
-          <LogOut className="h-4 w-4" />
+          <LogOut aria-hidden className="h-4 w-4" />
           Se déconnecter
         </button>
       </div>

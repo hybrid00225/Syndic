@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import { CoproprieteService } from './copropriete.service';
 import { CreateCoproprieteDto } from './dto/create-copropriete.dto';
+import { CreateCoproprieteCompleteDto } from './dto/create-copropriete-complete.dto';
 import { UpdateCoproprieteDto } from './dto/update-copropriete.dto';
 import { CurrentUser } from '../../auth/decorators';
 import { AuthUser } from '../../auth/auth-user.interface';
@@ -20,6 +21,15 @@ export class CoproprieteController {
   @Post()
   create(@CurrentUser() user: AuthUser, @Body() dto: CreateCoproprieteDto) {
     return this.service.create(dto, user.syndicId);
+  }
+
+  // Création complète (copropriété + bâtiments/niveaux + lots) en une fois.
+  @Post('complete')
+  createComplete(
+    @CurrentUser() user: AuthUser,
+    @Body() dto: CreateCoproprieteCompleteDto,
+  ) {
+    return this.service.createComplete(dto, user.syndicId);
   }
 
   @Get()

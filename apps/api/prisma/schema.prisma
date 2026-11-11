@@ -106,6 +106,15 @@ enum NatureSyndic {
   BENEVOLE
 }
 
+// Mode de génération / répartition des appels de fonds (extensions analyse :
+// tantièmes, clés de répartition, montant fixe, ou mixte). Paramétrable par copropriété.
+enum ModeRepartition {
+  TANTIEMES
+  CLES_REPARTITION
+  MONTANT_FIXE
+  MIXTE
+}
+
 model Copropriete {
   id                   String            @id @default(uuid())
   syndicId             String
@@ -117,6 +126,7 @@ model Copropriete {
   ensembleImmobilier   String? // rattachement résidence / ensemble (règle 1.16)
   devise               String            @default("XOF") // règle 1.13
   natureSyndic         NatureSyndic      @default(PROFESSIONNEL) // règle 1.18
+  modeRepartition      ModeRepartition   @default(TANTIEMES) // mode de génération des appels
   description          String?
   statut               CoproprieteStatut @default(EN_CREATION) // règle 1.15
   dateCreation         DateTime          @default(now()) // règle 1.14

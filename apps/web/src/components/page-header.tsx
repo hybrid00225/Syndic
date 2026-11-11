@@ -1,44 +1,51 @@
 import Link from 'next/link';
-import { ChevronRight } from 'lucide-react';
 
 export interface Crumb {
   label: string;
   href?: string;
 }
 
-// En-tête standard : fil d'Ariane → titre → sous-titre (+ actions à droite).
+// En-tête : fil d'Ariane → titre (Fraunces) → sous-titre, actions à droite.
 export function PageHeader({
   crumbs,
   title,
   subtitle,
   actions,
+  meta,
 }: {
   crumbs: Crumb[];
-  title: string;
-  subtitle?: string;
+  title: React.ReactNode;
+  subtitle?: React.ReactNode;
   actions?: React.ReactNode;
+  /** Ligne d'éléments sous le titre (badges, références…). */
+  meta?: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-wrap items-end justify-between gap-4">
-      <div>
-        <nav className="flex items-center gap-1 text-sm text-muted-foreground">
-          {crumbs.map((c, i) => (
-            <span key={i} className="flex items-center gap-1">
-              {i > 0 && <ChevronRight className="h-3.5 w-3.5" />}
-              {c.href ? (
-                <Link href={c.href} className="hover:text-foreground">
-                  {c.label}
-                </Link>
-              ) : (
-                <span className="text-foreground">{c.label}</span>
-              )}
-            </span>
-          ))}
+    <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4 border-b border-border pb-5">
+      <div className="min-w-0">
+        <nav aria-label="Fil d'Ariane" className="no-print">
+          <ol className="flex flex-wrap items-center gap-1.5 text-ui text-muted-foreground">
+            {crumbs.map((c, i) => (
+              <li key={i} className="flex items-center gap-1.5">
+                {i > 0 && <span aria-hidden className="text-muted-foreground/50">/</span>}
+                {c.href ? (
+                  <Link href={c.href} className="hover:text-foreground hover:underline underline-offset-4">
+                    {c.label}
+                  </Link>
+                ) : (
+                  <span aria-current="page" className="text-foreground">
+                    {c.label}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ol>
         </nav>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight">{title}</h1>
-        {subtitle && <p className="mt-1 text-muted-foreground">{subtitle}</p>}
+        <h1 className="mt-2 font-display text-[2rem] font-medium leading-tight">{title}</h1>
+        {subtitle && <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>}
+        {meta && <div className="mt-3 flex flex-wrap items-center gap-2">{meta}</div>}
       </div>
-      {actions && <div className="flex items-center gap-2">{actions}</div>}
-    </div>
+      {actions && <div className="no-print flex flex-wrap items-center gap-2">{actions}</div>}
+    </header>
   );
 }

@@ -1,12 +1,11 @@
 'use client';
 
 import { PageHeader } from '@/components/page-header';
-import { CoproForm } from '@/components/copro-form';
-import { CoproFormAside } from '@/components/copro-form-aside';
+import { CoproWizard } from '@/components/copro-wizard';
 
 export default function NouvelleCoproprietePage() {
   return (
-    <div className="animate-fade-up space-y-6">
+    <div className="space-y-6">
       <PageHeader
         crumbs={[
           { label: 'Espace', href: '/dashboard' },
@@ -14,14 +13,9 @@ export default function NouvelleCoproprietePage() {
           { label: 'Nouvelle' },
         ]}
         title="Nouvelle copropriété"
-        subtitle="Renseignez les informations. Vous pourrez ensuite ajouter bâtiments, lots et tantièmes."
+        subtitle="Configurez la copropriété, ses bâtiments et ses lots en une seule fois."
       />
-      <div className="grid gap-5 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <CoproForm mode="create" />
-        </div>
-        <CoproFormAside />
-      </div>
+      <CoproWizard />
     </div>
   );
 }

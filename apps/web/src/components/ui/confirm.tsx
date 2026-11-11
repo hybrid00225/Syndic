@@ -5,9 +5,10 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useId,
+  useRef,
   useState,
 } from 'react';
-import { AlertTriangle, ArrowRight, Info, Trash2, Check } from 'lucide-react';
 import { Button } from './button';
 import { cn } from '@/lib/utils';
 
@@ -20,23 +21,19 @@ export interface ConfirmOptions {
   /** Ce qui se passe ensuite, si pertinent. */
   nextAction?: string;
   confirmLabel?: string;
-  cancelLabel?: string;
+  /** null = pas de bouton d'annulation (simple information). */
+  cancelLabel?: string | null;
   tone?: Tone;
 }
 
 type Ctx = (o: ConfirmOptions) => Promise<boolean>;
 const ConfirmContext = createContext<Ctx | null>(null);
 
-const toneMeta: Record<Tone, { icon: typeof Info; chip: string; btn: 'danger' | 'primary' }> =
-  {
-    danger: { icon: Trash2, chip: 'bg-danger/12 text-danger', btn: 'danger' },
-    warning: {
-      icon: AlertTriangle,
-      chip: 'bg-warning/15 text-warning',
-      btn: 'primary',
-    },
-    primary: { icon: Check, chip: 'bg-primary/12 text-primary', btn: 'primary' },
-  };
+const toneBar: Record<Tone, string> = {
+  danger: 'bg-danger',
+  warning: 'bg-warning',
+  primary: 'bg-primary',
+};
 
 export function ConfirmProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<{
@@ -45,8 +42,7 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
   } | null>(null);
 
   const confirm = useCallback<Ctx>(
-    (opts) =>
-      new Promise<boolean>((resolve) => setState({ opts, resolve })),
+    (opts) => new Promise<boolean>((resolve) => setState({ opts, resolve })),
     [],
   );
 
@@ -58,73 +54,100 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
     [state],
   );
 
-  useEffect(() => {
-    if (!state) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') close(false);
-      if (e.key === 'Enter') close(true);
-    };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [state, close]);
-
-  const meta = state ? toneMeta[state.opts.tone ?? 'primary'] : null;
-  const Icon = meta?.icon ?? Info;
-
   return (
     <ConfirmContext.Provider value={confirm}>
       {children}
-      {state && meta && (
-        <div
-          className="fixed inset-0 z-[80] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
-          onClick={() => close(false)}
-        >
-          <div
-            className="w-full max-w-md animate-fade-up rounded-2xl border border-border bg-card p-6 shadow-lift"
-            onClick={(e) => e.stopPropagation()}
-            role="alertdialog"
-            aria-modal
-          >
-            <div className="flex items-start gap-3.5">
-              <span
-                className={cn(
-                  'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl',
-                  meta.chip,
-                )}
-              >
-                <Icon className="h-5 w-5" />
-              </span>
-              <div className="min-w-0">
-                <h2 className="text-base font-semibold tracking-tight">
-                  {state.opts.title}
-                </h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {state.opts.description}
-                </p>
-                {state.opts.nextAction && (
-                  <div className="mt-3 flex items-start gap-2 rounded-lg bg-muted px-3 py-2 text-sm text-foreground">
-                    <ArrowRight className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-                    <span>
-                      <span className="font-medium">Ensuite : </span>
-                      {state.opts.nextAction}
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="mt-6 flex justify-end gap-2">
-              <Button variant="secondary" onClick={() => close(false)}>
-                {state.opts.cancelLabel ?? 'Annuler'}
-              </Button>
-              <Button variant={meta.btn} onClick={() => close(true)}>
-                {state.opts.confirmLabel ?? 'Confirmer'}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      {state && <Dialog opts={state.opts} onClose={close} />}
     </ConfirmContext.Provider>
+  );
+}
+
+function Dialog({ opts, onClose }: { opts: ConfirmOptions; onClose: (v: boolean) => void }) {
+  const id = useId();
+  const boxRef = useRef<HTMLDivElement>(null);
+  const cancelRef = useRef<HTMLButtonElement>(null);
+  const okRef = useRef<HTMLButtonElement>(null);
+  const tone = opts.tone ?? 'primary';
+
+  useEffect(() => {
+    const previous = document.activeElement as HTMLElement | null;
+    // Action destructive : le focus part sur « Annuler » (Entrée ne détruit rien par accident).
+    (tone === 'danger' && cancelRef.current ? cancelRef.current : okRef.current)?.focus();
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose(false);
+      }
+      // Piège de focus : Tab reste dans la boîte.
+      if (e.key === 'Tab' && boxRef.current) {
+        const els = boxRef.current.querySelectorAll<HTMLElement>('button');
+        const first = els[0];
+        const last = els[els.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = overflow;
+      previous?.focus?.();
+    };
+  }, [onClose, tone]);
+
+  return (
+    <div
+      className="fixed inset-0 z-[80] flex items-center justify-center bg-foreground/30 p-4"
+      onMouseDown={() => onClose(false)}
+    >
+      <div
+        ref={boxRef}
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby={`${id}-t`}
+        aria-describedby={`${id}-d`}
+        onMouseDown={(e) => e.stopPropagation()}
+        className="w-full max-w-md animate-pop-in overflow-hidden rounded-lg border border-border bg-card shadow-lift"
+      >
+        <div aria-hidden className={cn('h-1', toneBar[tone])} />
+        <div className="p-6">
+          <h2 id={`${id}-t`} className="font-display text-xl font-medium">
+            {opts.title}
+          </h2>
+          <p id={`${id}-d`} className="mt-2 text-sm text-muted-foreground">
+            {opts.description}
+          </p>
+          {opts.nextAction && (
+            <p className="mt-4 border-l-2 border-border pl-3 text-sm">
+              <span className="font-medium">Ensuite — </span>
+              {opts.nextAction}
+            </p>
+          )}
+        </div>
+        <div className="flex justify-end gap-2 border-t border-border bg-muted/40 px-6 py-3">
+          {opts.cancelLabel !== null && (
+            <Button ref={cancelRef} variant="secondary" onClick={() => onClose(false)}>
+              {opts.cancelLabel ?? 'Annuler'}
+            </Button>
+          )}
+          <Button
+            ref={okRef}
+            variant={tone === 'danger' ? 'danger' : 'primary'}
+            onClick={() => onClose(true)}
+          >
+            {opts.confirmLabel ?? 'Confirmer'}
+          </Button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -132,4 +155,11 @@ export function useConfirm(): Ctx {
   const ctx = useContext(ConfirmContext);
   if (!ctx) throw new Error('useConfirm doit être utilisé dans ConfirmProvider');
   return ctx;
+}
+
+/** Message d'information (un seul bouton). */
+export function useAlert() {
+  const confirm = useConfirm();
+  return (title: string, description: string, tone: Tone = 'warning') =>
+    confirm({ title, description, tone, cancelLabel: null, confirmLabel: 'Compris' });
 }

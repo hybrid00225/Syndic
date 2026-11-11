@@ -5,7 +5,7 @@ import {
   IsOptional,
   IsString,
 } from 'class-validator';
-import { CoproprieteType, NatureSyndic } from '@prisma/client';
+import { CoproprieteType, ModeRepartition, NatureSyndic } from '@prisma/client';
 
 export class CreateCoproprieteDto {
   @IsString()
@@ -39,6 +39,10 @@ export class CreateCoproprieteDto {
   @IsEnum(NatureSyndic)
   @IsOptional()
   natureSyndic?: NatureSyndic; // professionnel / bénévole (règle 1.18)
+
+  @IsEnum(ModeRepartition)
+  @IsOptional()
+  modeRepartition?: ModeRepartition; // mode de génération des appels
 
   @IsString()
   @IsOptional()

@@ -1,9 +1,10 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { AuthProvider } from '@/lib/auth';
+import { QueryProvider } from '@/lib/query';
 
 export const metadata: Metadata = {
-  title: 'Syndic Alpha',
+  title: { default: 'Syndic Alpha', template: '%s · Syndic Alpha' },
   description: 'Gestion de syndic de copropriété',
 };
 
@@ -17,18 +18,16 @@ const themeScript = `
   } catch (e) {}
 `;
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="fr" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body>
-        <AuthProvider>{children}</AuthProvider>
+        <QueryProvider>
+          <AuthProvider>{children}</AuthProvider>
+        </QueryProvider>
       </body>
     </html>
   );

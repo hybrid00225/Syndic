@@ -2,6 +2,7 @@ import { IsDateString, IsEnum, IsOptional, IsString } from 'class-validator';
 import {
   CoproprieteStatut,
   CoproprieteType,
+  ModeRepartition,
   NatureSyndic,
 } from '@prisma/client';
 
@@ -37,6 +38,10 @@ export class UpdateCoproprieteDto {
   @IsEnum(NatureSyndic)
   @IsOptional()
   natureSyndic?: NatureSyndic;
+
+  @IsEnum(ModeRepartition)
+  @IsOptional()
+  modeRepartition?: ModeRepartition;
 
   @IsString()
   @IsOptional()

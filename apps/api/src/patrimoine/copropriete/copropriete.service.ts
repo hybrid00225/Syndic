@@ -1,7 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { LotStatut, LotType } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateCoproprieteDto } from './dto/create-copropriete.dto';
 import { UpdateCoproprieteDto } from './dto/update-copropriete.dto';
+import { CreateCoproprieteCompleteDto } from './dto/create-copropriete-complete.dto';
 
 @Injectable()
 export class CoproprieteService {
@@ -21,11 +23,79 @@ export class CoproprieteService {
         ensembleImmobilier: dto.ensembleImmobilier,
         devise: dto.devise ?? 'XOF',
         natureSyndic: dto.natureSyndic,
+        modeRepartition: dto.modeRepartition,
         description: dto.description,
         dateMiseExploitation: dto.dateMiseExploitation
           ? new Date(dto.dateMiseExploitation)
           : undefined,
       },
+    });
+  }
+
+  // Création complète (copropriété + bâtiments/niveaux + lots) en une transaction.
+  createComplete(dto: CreateCoproprieteCompleteDto, syndicId: string) {
+    const { batiments, lots, dateMiseExploitation, ...coproFields } = dto;
+    return this.prisma.$transaction(async (tx) => {
+      const copro = await tx.copropriete.create({
+        data: {
+          syndicId,
+          nom: coproFields.nom,
+          reference: coproFields.reference,
+          type: coproFields.type,
+          pays: coproFields.pays,
+          adresse: coproFields.adresse,
+          ensembleImmobilier: coproFields.ensembleImmobilier,
+          devise: coproFields.devise ?? 'XOF',
+          natureSyndic: coproFields.natureSyndic,
+          modeRepartition: coproFields.modeRepartition,
+          description: coproFields.description,
+          dateMiseExploitation: dateMiseExploitation
+            ? new Date(dateMiseExploitation)
+            : undefined,
+        },
+      });
+
+      const batIds: string[] = [];
+      const nivIds: string[][] = [];
+      for (const [bi, b] of (batiments ?? []).entries()) {
+        const bat = await tx.batiment.create({
+          data: { coproprieteId: copro.id, nom: b.nom },
+        });
+        batIds[bi] = bat.id;
+        nivIds[bi] = [];
+        for (const [ni, n] of (b.niveaux ?? []).entries()) {
+          const niv = await tx.niveau.create({
+            data: { batimentId: bat.id, nom: n.nom, ordre: n.ordre ?? ni },
+          });
+          nivIds[bi][ni] = niv.id;
+        }
+      }
+
+      for (const lot of lots ?? []) {
+        const batimentId =
+          lot.batimentIndex != null ? batIds[lot.batimentIndex] : undefined;
+        const niveauId =
+          lot.batimentIndex != null && lot.niveauIndex != null
+            ? nivIds[lot.batimentIndex]?.[lot.niveauIndex]
+            : undefined;
+        await tx.lot.create({
+          data: {
+            coproprieteId: copro.id,
+            reference: lot.reference,
+            type: (lot.type as LotType) ?? LotType.AUTRE,
+            designation: lot.designation,
+            superficie: lot.superficie,
+            statut: (lot.statut as LotStatut) ?? undefined,
+            batimentId,
+            niveauId,
+          },
+        });
+      }
+
+      return tx.copropriete.findUnique({
+        where: { id: copro.id },
+        include: { batiments: true },
+      });
     });
   }
 

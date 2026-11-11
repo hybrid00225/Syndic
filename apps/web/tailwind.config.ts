@@ -33,26 +33,34 @@ const config: Config = {
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',
       },
+      // Trois courbures seulement : contrôles (md), surfaces (lg), pastilles (full).
       borderRadius: {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 4px)',
-        sm: 'calc(var(--radius) - 8px)',
+        sm: 'calc(var(--radius) - 7px)',
       },
       fontFamily: {
         sans: ['var(--font-sans)', 'system-ui', 'sans-serif'],
+        display: ['var(--font-display)', 'Georgia', 'serif'],
       },
+      // Échelle typographique (remplace les tailles arbitraires).
+      fontSize: {
+        '2xs': ['0.6875rem', { lineHeight: '1rem' }],
+        ui: ['0.8125rem', { lineHeight: '1.25rem' }],
+      },
+      // Deux niveaux de profondeur seulement.
       boxShadow: {
-        soft: '0 1px 2px 0 rgb(0 0 0 / 0.04), 0 4px 16px -2px rgb(0 0 0 / 0.06)',
-        lift: '0 8px 30px -6px rgb(0 0 0 / 0.12)',
+        soft: '0 1px 0 0 rgb(40 30 20 / 0.04)',
+        lift: '0 1px 2px rgb(40 30 20 / 0.06), 0 12px 32px -8px rgb(40 30 20 / 0.18)',
       },
       keyframes: {
-        'fade-up': {
-          from: { opacity: '0', transform: 'translateY(8px)' },
-          to: { opacity: '1', transform: 'translateY(0)' },
+        'pop-in': {
+          from: { opacity: '0', transform: 'scale(0.98)' },
+          to: { opacity: '1', transform: 'scale(1)' },
         },
       },
       animation: {
-        'fade-up': 'fade-up 0.4s ease-out both',
+        'pop-in': 'pop-in 0.14s ease-out both',
       },
     },
   },

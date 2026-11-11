@@ -14,6 +14,7 @@ import {
   TYPES_COPRO,
   NATURE_SYNDIC,
   DEVISES,
+  MODES_REPARTITION,
 } from '@/lib/constants';
 
 export interface CoproValues {
@@ -25,6 +26,7 @@ export interface CoproValues {
   ensembleImmobilier: string;
   devise: string;
   natureSyndic: string;
+  modeRepartition: string;
   description: string;
   dateMiseExploitation: string;
   statut?: string;
@@ -39,6 +41,7 @@ const EMPTY: CoproValues = {
   ensembleImmobilier: '',
   devise: 'XOF',
   natureSyndic: 'PROFESSIONNEL',
+  modeRepartition: 'TANTIEMES',
   description: '',
   dateMiseExploitation: '',
   statut: 'EN_CREATION',
@@ -74,6 +77,7 @@ export function CoproForm({
         ensembleImmobilier: form.ensembleImmobilier || undefined,
         devise: form.devise,
         natureSyndic: form.natureSyndic,
+        modeRepartition: form.modeRepartition,
         description: form.description || undefined,
         dateMiseExploitation: form.dateMiseExploitation || undefined,
         ...(mode === 'edit' ? { statut: form.statut } : {}),
@@ -163,6 +167,14 @@ export function CoproForm({
             value={form.natureSyndic}
             onChange={(v) => set('natureSyndic', v)}
             options={NATURE_SYNDIC}
+          />
+        </div>
+        <div>
+          <Label>Mode de répartition des appels</Label>
+          <SearchSelect
+            value={form.modeRepartition}
+            onChange={(v) => set('modeRepartition', v)}
+            options={MODES_REPARTITION}
           />
         </div>
         <div>
