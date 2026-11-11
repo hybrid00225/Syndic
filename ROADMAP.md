@@ -40,7 +40,7 @@ Dernière mise à jour : 2026-11-11.
 | ⬜ | **Budgets prévisionnels** |
 | ✅ | **Appels de fonds** (génération, calcul par lot/redevable, relevé consolidé) — spec `docs/specs/04-appels.md` · _PDF = slice à venir_ |
 | ✅ | **Encaissements & paiements** (Mobile Money + idempotence, affectation séparée, avance) — spec `docs/specs/05-encaissements.md` |
-| ⬜ | **Impayés & recouvrement** (relances) |
+| ✅ | **Impayés & recouvrement** (solde calculé, jours de retard, relances) — spec `docs/specs/06-impayes.md` |
 
 ## Vague 3 — Comptabilité & clôtures
 

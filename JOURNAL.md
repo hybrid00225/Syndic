@@ -83,7 +83,16 @@
 
 **Le cycle financier complet du MVP tourne** : patrimoine → propriété → tantièmes → appels de fonds → encaissements/affectation.
 
-**Prochaine étape :**
-- Module **06 — Impayés & recouvrement** (liste des lignes à solde > 0, jours de retard, relances) — complète le MVP côté financier.
-- Ou **slice PDF** (relevé/reçu) ; ou le **front** (Design System).
-- **Dette technique prioritaire** : **Auth** (arrêter `syndicId` en body + RLS) et **AuditLog**.
+**Module 06 — Impayés & recouvrement (fait, session 1) :**
+- Spec `docs/specs/06-impayes.md` (RG-38 → RG-42).
+- Pas de table « dette » : le solde se **calcule** (montant ligne − Σ affectations). Nouvelle table `Relance` (migration `add_relance`).
+- Calcul pur `src/recouvrement/recouvrement-calcul.ts` : impayés groupés par copropriétaire, jours de retard, tri par solde.
+- Service : impayés (appels VALIDE seulement), situation (dû/payé/solde/avances), relances (fige le montant réclamé).
+- Tests : **60/60 verts** (+6). Smoke E2E : solde 70k, 224 jours retard, relance, puis 0 impayé après règlement.
+
+**🎯 BACKEND DU MVP COMPLET** — tout le cycle métier tourne et est testé E2E : patrimoine → propriété → tantièmes → appels de fonds → encaissements → impayés/recouvrement. 6 modules, 60 tests, 7 migrations. DoD du MVP cochée côté backend (voir `docs/MVP.md`).
+
+**Prochaine étape (ce qu'il reste pour un MVP livrable) :**
+- **Slice PDF** (relevé d'appel + reçu + courrier de relance) — nécessite lib PDF + worker.
+- **Auth + RBAC + RLS** (arrêter `syndicId`/`payeurId` en body) et **AuditLog** — dette technique transverse.
+- **Front** (Design System qualité Dribbble/Pinterest + écrans).

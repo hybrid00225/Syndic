@@ -422,3 +422,28 @@ model AffectationPaiement {
   @@index([paiementId])
   @@index([ligneAppelId])
 }
+
+// =====================================================================
+// MODULE 06 — IMPAYÉS & RECOUVREMENT
+// Le solde d'une ligne se calcule (montant − Σ affectations) : pas de table
+// "dette". On historise seulement les RELANCES du recouvrement.
+// =====================================================================
+
+enum CanalRelance {
+  EMAIL
+  SMS
+  COURRIER
+}
+
+model Relance {
+  id             String       @id @default(uuid())
+  coproprieteId  String
+  personneId     String
+  niveau         Int          @default(1) // 1 = 1re relance, 2 = mise en demeure, ...
+  canal          CanalRelance
+  montantReclame BigInt // solde impayé figé au moment de la relance
+  commentaire    String?
+  dateEnvoi      DateTime     @default(now())
+
+  @@index([coproprieteId, personneId])
+}

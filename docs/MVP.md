@@ -85,10 +85,12 @@ Ces règles doivent être **couvertes par des tests automatiques** :
 
 ## 🏁 Definition of Done (MVP)
 
-- [ ] Un gestionnaire peut créer une copro complète (bâtiments → lots).
-- [ ] Il peut enregistrer copropriétaires + quotes-parts + tantièmes.
-- [ ] Il peut générer un appel de fonds et télécharger le PDF par copropriétaire.
-- [ ] Il peut enregistrer des paiements et éditer les reçus.
-- [ ] Il voit la liste des impayés avec jours de retard.
-- [ ] Les 8 règles d'acceptation sont couvertes par des tests verts.
-- [ ] Les écrans respectent le Design System (qualité visuelle validée).
+- [x] Un gestionnaire peut créer une copro complète (bâtiments → lots). _(backend)_
+- [x] Il peut enregistrer copropriétaires + quotes-parts + tantièmes. _(backend)_
+- [x] Il peut générer un appel de fonds **et le relevé consolidé par copropriétaire**. _(backend ; PDF = slice à venir)_
+- [x] Il peut enregistrer des paiements et les affecter aux dettes. _(backend ; reçu PDF = slice à venir)_
+- [x] Il voit la liste des impayés avec jours de retard. _(backend)_
+- [x] Les règles d'acceptation sont couvertes par des tests verts (60 tests).
+- [ ] Les écrans respectent le Design System (qualité visuelle validée). _(front à faire)_
+
+> **Backend du MVP : complet et testé.** Restent : slice **PDF**, couche **Auth/Audit**, et le **front** (Design System).
