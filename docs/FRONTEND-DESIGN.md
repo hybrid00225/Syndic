@@ -25,6 +25,26 @@
 **Qualité FR**
 - [ ] Orthographe française correcte (accents), formats `fr-FR`.
 
+### Patron OBLIGATOIRE des interfaces de liste (toutes les listes)
+Ordre imposé, de haut en bas :
+1. **Fil d'Ariane** (`PageHeader`) → titre → sous-titre + action principale à droite.
+2. **Widgets** (tuiles KPI) — synthèse en haut.
+3. **Filtre avancé** : recherche + filtres (statut, etc.) + **bascule de vue**.
+4. **Vue TABLE par défaut** (colonnes + lignes) ; **+ vue cartes** en option.
+5. **Cartes riches** (beaucoup d'infos : mini-stats, badges, méta).
+6. **Actions par ligne/carte en icônes** : **Voir · Modifier · Supprimer/Archiver**, chacune avec **Tooltip**, action destructive → **confirm()**.
+
+### Formulaires
+- **La plupart des formulaires = PAGES** dédiées (création/édition), pas des modals. Modal réservé aux formulaires **simples** (1-3 champs).
+- Chaque **suppression / enregistrement / modification / validation** → **popup `confirm()` customisé** indiquant l'**impact** + l'**étape suivante**.
+
+### Tooltips & onboarding
+- **Aucun bouton sans tooltip** (surtout les boutons icône) — composant `Tooltip`.
+- **Widgets** : tooltip explicatif de ce qu'ils montrent.
+- **Helpers d'onboarding** : checklist « pour bien démarrer », états vides pédagogiques, info-bulles contextuelles.
+
+> Primitives dispo : `PageHeader`, `StatTile`, `Tooltip`, `useConfirm()`/`ConfirmProvider`, `Button asChild`. Réutiliser, ne pas réinventer.
+
 ---
 
 ---

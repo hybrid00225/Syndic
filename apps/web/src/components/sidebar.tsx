@@ -18,6 +18,8 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { Wordmark } from '@/components/wordmark';
+import { Tooltip } from '@/components/ui/tooltip';
+import { useConfirm } from '@/components/ui/confirm';
 import { cn } from '@/lib/utils';
 
 type Item = { href: string; label: string; icon: typeof Home };
@@ -48,7 +50,20 @@ const COLLAPSE_KEY = 'syndic_alpha_sidebar_collapsed';
 export function Sidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
+  const confirm = useConfirm();
   const [collapsed, setCollapsed] = useState(false);
+
+  const handleLogout = async () => {
+    const ok = await confirm({
+      title: 'Se déconnecter ?',
+      description:
+        'Vous allez quitter votre session. Les éléments non enregistrés seront perdus.',
+      nextAction: "Vous reviendrez à l'écran de connexion.",
+      confirmLabel: 'Se déconnecter',
+      tone: 'danger',
+    });
+    if (ok) logout();
+  };
   const [query, setQuery] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -110,15 +125,19 @@ export function Sidebar() {
         )}
 
         {/* bouton replier/déplier (sur le bord) */}
-        <button
-          onClick={toggleCollapse}
-          aria-label={collapsed ? 'Déplier le menu' : 'Replier le menu'}
-          className="absolute -right-3 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-sm transition hover:text-foreground"
-        >
-          <ChevronLeft
-            className={cn('h-4 w-4 transition-transform', collapsed && 'rotate-180')}
-          />
-        </button>
+        <div className="absolute -right-3 top-1/2 z-50 -translate-y-1/2">
+          <Tooltip label={collapsed ? 'Déplier le menu' : 'Replier le menu'} side="right">
+            <button
+              onClick={toggleCollapse}
+              aria-label={collapsed ? 'Déplier le menu' : 'Replier le menu'}
+              className="flex h-6 w-6 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-sm transition hover:text-foreground"
+            >
+              <ChevronLeft
+                className={cn('h-4 w-4 transition-transform', collapsed && 'rotate-180')}
+              />
+            </button>
+          </Tooltip>
+        </div>
       </div>
 
       {/* Filtre */}
@@ -223,7 +242,7 @@ export function Sidebar() {
             <UserMenu
               collapsed={collapsed}
               email={user?.email}
-              onLogout={logout}
+              onLogout={handleLogout}
             />
           )}
         </div>

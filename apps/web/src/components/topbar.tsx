@@ -15,6 +15,8 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
+import { Tooltip } from '@/components/ui/tooltip';
+import { useConfirm } from '@/components/ui/confirm';
 import { cn } from '@/lib/utils';
 
 type Menu = 'lang' | 'theme' | 'notif' | 'profile' | null;
@@ -34,10 +36,24 @@ function applyTheme(mode: ThemeMode) {
 
 export function Topbar() {
   const { user, logout } = useAuth();
+  const confirm = useConfirm();
   const [open, setOpen] = useState<Menu>(null);
   const [lang, setLang] = useState('FR');
   const [theme, setTheme] = useState<ThemeMode>('system');
   const ref = useRef<HTMLDivElement>(null);
+
+  const handleLogout = async () => {
+    setOpen(null);
+    const ok = await confirm({
+      title: 'Se déconnecter ?',
+      description:
+        'Vous allez quitter votre session. Les éléments non enregistrés seront perdus.',
+      nextAction: "Vous reviendrez à l'écran de connexion.",
+      confirmLabel: 'Se déconnecter',
+      tone: 'danger',
+    });
+    if (ok) logout();
+  };
 
   useEffect(() => {
     const stored = localStorage.getItem(THEME_KEY) as ThemeMode | null;
@@ -75,14 +91,16 @@ export function Topbar() {
       <div ref={ref} className="ml-auto flex items-center gap-0.5">
         {/* Langue */}
         <div className="relative">
-          <button
-            onClick={() => toggle('lang')}
-            className={triggerCls(open === 'lang')}
-            aria-label="Langue"
-          >
-            <Globe className="h-[18px] w-[18px]" />
-            <span className="text-xs font-semibold">{lang}</span>
-          </button>
+          <Tooltip label="Langue de l'interface" side="bottom">
+            <button
+              onClick={() => toggle('lang')}
+              className={triggerCls(open === 'lang')}
+              aria-label="Langue"
+            >
+              <Globe className="h-[18px] w-[18px]" />
+              <span className="text-xs font-semibold">{lang}</span>
+            </button>
+          </Tooltip>
           {open === 'lang' && (
             <Panel className="w-40">
               <MenuItem
@@ -107,13 +125,15 @@ export function Topbar() {
 
         {/* Thème */}
         <div className="relative">
-          <button
-            onClick={() => toggle('theme')}
-            className={triggerCls(open === 'theme')}
-            aria-label="Thème"
-          >
-            <ThemeIcon className="h-[18px] w-[18px]" />
-          </button>
+          <Tooltip label="Apparence (clair / sombre)" side="bottom">
+            <button
+              onClick={() => toggle('theme')}
+              className={triggerCls(open === 'theme')}
+              aria-label="Thème"
+            >
+              <ThemeIcon className="h-[18px] w-[18px]" />
+            </button>
+          </Tooltip>
           {open === 'theme' && (
             <Panel className="w-44">
               {(
@@ -139,13 +159,15 @@ export function Topbar() {
 
         {/* Notifications */}
         <div className="relative">
-          <button
-            onClick={() => toggle('notif')}
-            className={cn(triggerCls(open === 'notif'), 'relative')}
-            aria-label="Notifications"
-          >
-            <Bell className="h-[18px] w-[18px]" />
-          </button>
+          <Tooltip label="Notifications" side="bottom">
+            <button
+              onClick={() => toggle('notif')}
+              className={cn(triggerCls(open === 'notif'), 'relative')}
+              aria-label="Notifications"
+            >
+              <Bell className="h-[18px] w-[18px]" />
+            </button>
+          </Tooltip>
           {open === 'notif' && (
             <Panel className="w-80">
               <div className="flex items-center justify-between border-b border-border px-3 py-2.5">
@@ -209,7 +231,7 @@ export function Topbar() {
                   </span>
                 </MenuItem>
                 <button
-                  onClick={logout}
+                  onClick={handleLogout}
                   className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-danger transition hover:bg-danger/10"
                 >
                   <LogOut className="h-4 w-4" />
