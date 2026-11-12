@@ -321,15 +321,15 @@ export function CoproWizard() {
               {avecBatiments && (
                 <>
                   <Field label="Nombre de bâtiments" hint="Codés A, B, C…">
-                    <Input inputMode="numeric" value={gen.nbBat} onChange={(e) => setG('nbBat', e.target.value)} />
+                    <Input inputMode="numeric" value={gen.nbBat} onChange={(e) => setG('nbBat', e.target.value)} placeholder="Ex. 2" />
                   </Field>
                   <Field label="Niveaux par bâtiment" hint="RDC, R+1, R+2…">
-                    <Input inputMode="numeric" value={gen.nbNiv} onChange={(e) => setG('nbNiv', e.target.value)} />
+                    <Input inputMode="numeric" value={gen.nbNiv} onChange={(e) => setG('nbNiv', e.target.value)} placeholder="Ex. 5" />
                   </Field>
                 </>
               )}
               <Field label={avecBatiments ? 'Lots par niveau' : 'Nombre de lots'} hint="Type par défaut : appartement.">
-                <Input inputMode="numeric" value={gen.nbLot} onChange={(e) => setG('nbLot', e.target.value)} />
+                <Input inputMode="numeric" value={gen.nbLot} onChange={(e) => setG('nbLot', e.target.value)} placeholder="Ex. 4" />
               </Field>
             </div>
 

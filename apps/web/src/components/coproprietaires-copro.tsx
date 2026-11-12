@@ -425,7 +425,7 @@ function AttribuerSheet({
 
         <div>
           <Segmented
-            className="mb-1.5"
+            className="mb-3"
             aria-label="Copropriétaire"
             value={mode}
             onChange={setMode}
@@ -445,17 +445,37 @@ function AttribuerSheet({
               />
             </Field>
           ) : (
-            <div className="grid gap-3 sm:grid-cols-3">
-              <Field label="Type">
+            <div className="space-y-3">
+              <Field label="Type de personne">
                 <SearchSelect value={nouveau.type} onChange={(v) => setNouveau({ ...nouveau, type: v })} options={PERSONNE_TYPES} />
               </Field>
-              <Field label={nouveau.type === 'MORALE' ? 'Raison sociale' : 'Nom'} required>
-                <Input value={nouveau.nom} onChange={(e) => setNouveau({ ...nouveau, nom: e.target.value })} />
-              </Field>
-              {nouveau.type !== 'MORALE' && (
-                <Field label="Prénom">
-                  <Input value={nouveau.prenom} onChange={(e) => setNouveau({ ...nouveau, prenom: e.target.value })} />
+              {nouveau.type === 'MORALE' ? (
+                <Field label="Raison sociale" required>
+                  <Input
+                    value={nouveau.nom}
+                    onChange={(e) => setNouveau({ ...nouveau, nom: e.target.value })}
+                    placeholder="Ex. SCI Les Palmiers"
+                  />
                 </Field>
+              ) : (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Field label="Nom" required>
+                    <Input
+                      value={nouveau.nom}
+                      onChange={(e) => setNouveau({ ...nouveau, nom: e.target.value })}
+                      placeholder="Ex. Koné"
+                      autoComplete="family-name"
+                    />
+                  </Field>
+                  <Field label="Prénom">
+                    <Input
+                      value={nouveau.prenom}
+                      onChange={(e) => setNouveau({ ...nouveau, prenom: e.target.value })}
+                      placeholder="Ex. Awa"
+                      autoComplete="given-name"
+                    />
+                  </Field>
+                </div>
               )}
             </div>
           )}
@@ -469,10 +489,10 @@ function AttribuerSheet({
             <Input type="date" value={dateDebut} onChange={(e) => setDateDebut(e.target.value)} />
           </Field>
           <Field label="Quote-part — numérateur" required hint="Ex. 1 (part) sur…">
-            <Input type="number" min={1} value={num} onChange={(e) => setNum(e.target.value)} />
+            <Input type="number" min={1} value={num} onChange={(e) => setNum(e.target.value)} placeholder="Ex. 1" />
           </Field>
           <Field label="… dénominateur" required hint="Ex. 1 (seul) ou 2 (moitié), 3…">
-            <Input type="number" min={1} value={den} onChange={(e) => setDen(e.target.value)} />
+            <Input type="number" min={1} value={den} onChange={(e) => setDen(e.target.value)} placeholder="Ex. 2 (moitié)" />
           </Field>
         </div>
         <p className="text-2xs text-muted-foreground">

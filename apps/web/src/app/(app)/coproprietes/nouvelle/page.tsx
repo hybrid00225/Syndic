@@ -7,6 +7,7 @@ export default function NouvelleCoproprietePage() {
   return (
     <div className="space-y-6">
       <PageHeader
+        back="/coproprietes"
         crumbs={[
           { label: 'Espace', href: '/dashboard' },
           { label: 'Copropriétés', href: '/coproprietes' },

@@ -510,7 +510,7 @@ function LotFields({
         <SearchSelect value={valeur.type} onChange={(v) => onChange({ ...valeur, type: v })} options={LOT_TYPES} />
       </Field>
       <Field label="Superficie (m²)">
-        <Input type="number" min={0} value={valeur.superficie} onChange={(e) => onChange({ ...valeur, superficie: e.target.value })} />
+        <Input type="number" min={0} value={valeur.superficie} onChange={(e) => onChange({ ...valeur, superficie: e.target.value })} placeholder="Ex. 72,5" />
       </Field>
       <Field label="Bâtiment">
         <SearchSelect

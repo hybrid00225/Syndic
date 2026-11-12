@@ -410,7 +410,7 @@ function Equipements({
               <SearchSelect value={form.etat} onChange={(v) => setForm({ ...form, etat: v })} options={EQUIPEMENT_ETATS} />
             </Field>
             <Field label="N° de série">
-              <Input value={form.numeroSerie} onChange={(e) => setForm({ ...form, numeroSerie: e.target.value })} />
+              <Input value={form.numeroSerie} onChange={(e) => setForm({ ...form, numeroSerie: e.target.value })} placeholder="Ex. SN-2024-0458" />
             </Field>
             <Field label="Fournisseur" hint="Texte libre pour l'instant.">
               <Input value={form.fournisseur} onChange={(e) => setForm({ ...form, fournisseur: e.target.value })} placeholder="Otis, Schindler…" />
@@ -440,7 +440,7 @@ function Equipements({
               />
             </Field>
             <Field className="sm:col-span-2" label="Notes">
-              <Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={2} />
+              <Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={2} placeholder="Contrat d’entretien, dernière intervention, consignes…" />
             </Field>
           </div>
         </Modal>

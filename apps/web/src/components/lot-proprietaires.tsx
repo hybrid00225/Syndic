@@ -211,10 +211,10 @@ function AjoutModal({
         </Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Quote-part (num.)">
-            <Input type="number" min={1} value={num} onChange={(e) => setNum(e.target.value)} />
+            <Input type="number" min={1} value={num} onChange={(e) => setNum(e.target.value)} placeholder="Ex. 1" />
           </Field>
           <Field label="Quote-part (dén.)">
-            <Input type="number" min={1} value={den} onChange={(e) => setDen(e.target.value)} />
+            <Input type="number" min={1} value={den} onChange={(e) => setDen(e.target.value)} placeholder="Ex. 2 (moitié)" />
           </Field>
         </div>
         <p className={cn('text-2xs', invalide ? 'text-danger' : 'text-muted-foreground')}>

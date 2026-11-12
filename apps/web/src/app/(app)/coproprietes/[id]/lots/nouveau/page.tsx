@@ -11,6 +11,7 @@ export default function NouveauLotPage() {
   return (
     <div className="animate-fade-up space-y-6">
       <PageHeader
+        back={`/coproprietes/${id}?tab=lots`}
         crumbs={[
           { label: 'Espace', href: '/dashboard' },
           { label: 'Copropriétés', href: '/coproprietes' },

@@ -36,6 +36,7 @@ export default function ModifierCoproprietePage() {
   return (
     <div className="animate-fade-up space-y-6">
       <PageHeader
+        back={`/coproprietes/${id}`}
         crumbs={[
           { label: 'Espace', href: '/dashboard' },
           { label: 'Copropriétés', href: '/coproprietes' },

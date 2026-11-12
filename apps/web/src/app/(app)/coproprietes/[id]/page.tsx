@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import {
   Pencil,
   Archive,
@@ -90,22 +90,25 @@ const TABS = [
   { key: 'documents', label: 'Documents', icon: FileText },
 ] as const;
 
+type Onglet = (typeof TABS)[number]['key'];
+
+/** Onglet demandé dans l'URL (« Informations » si absent ou inconnu). */
+function ongletDepuis(t: string | null): Onglet {
+  if (t === 'patrimoine') return 'batiments'; // anciens liens
+  return TABS.some((x) => x.key === t) ? (t as Onglet) : 'infos';
+}
+
 export default function CoproprieteDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const confirm = useConfirm();
   const [copro, setCopro] = useState<Copropriete | null>(null);
   const [lots, setLots] = useState<Lot[]>([]);
-  const [tab, setTab] = useState<(typeof TABS)[number]['key']>(() => {
-    if (typeof window !== 'undefined') {
-      let t = new URLSearchParams(window.location.search).get('tab');
-      if (t === 'patrimoine') t = 'batiments'; // anciens liens
-      if (t && TABS.some((x) => x.key === t)) {
-        return t as (typeof TABS)[number]['key'];
-      }
-    }
-    return 'infos';
-  });
+  // Onglet piloté par l'URL (?tab=…) : lien partageable, retour arrière, navigation interne.
+  const searchParams = useSearchParams();
+  const ongletUrl = ongletDepuis(searchParams.get('tab'));
+  const [tab, setTab] = useState<Onglet>(ongletUrl);
+  useEffect(() => setTab(ongletUrl), [ongletUrl]);
 
   useEffect(() => {
     api<Copropriete>(`/coproprietes/${id}`).then(setCopro).catch(() => setCopro(null));
@@ -113,7 +116,7 @@ export default function CoproprieteDetailPage() {
   }, [id]);
 
   // Onglet courant reflété dans l'URL (lien partageable, retour arrière).
-  function changerOnglet(k: (typeof TABS)[number]['key']) {
+  function changerOnglet(k: Onglet) {
     setTab(k);
     const url = new URL(window.location.href);
     url.searchParams.set('tab', k);
@@ -142,6 +145,7 @@ export default function CoproprieteDetailPage() {
   return (
     <div className="animate-fade-up space-y-6">
       <PageHeader
+        back="/coproprietes"
         crumbs={[
           { label: 'Espace', href: '/dashboard' },
           { label: 'Copropriétés', href: '/coproprietes' },

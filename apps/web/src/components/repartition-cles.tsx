@@ -345,35 +345,36 @@ function EditeurTantiemes({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={onClose}>
-            <ArrowLeft className="h-4 w-4" /> Clés
-          </Button>
-          <div>
-            <h2 className="text-ui font-semibold">{data.nom}</h2>
-            {data.description && (
-              <p className="text-2xs text-muted-foreground">{data.description}</p>
-            )}
-          </div>
-        </div>
+      {/* En-tête : retour à la liste, puis la clé */}
+      <div>
+        <Button variant="ghost" size="sm" className="-ml-2" onClick={onClose}>
+          <ArrowLeft className="h-4 w-4" /> Toutes les clés
+        </Button>
+        <h2 className="mt-1 font-display text-xl font-medium leading-tight">{data.nom}</h2>
+        {data.description && <p className="mt-1 text-ui text-muted-foreground">{data.description}</p>}
       </div>
 
-      {/* Barre d'outils : base + aides de répartition */}
-      <Card className="flex flex-wrap items-end gap-4 p-4">
-        <Field label="Base de tantièmes" className="w-40" hint="Convention d'affichage.">
-          <SearchSelect value={base} onChange={setBase} options={BASES as any} />
-        </Field>
-        <Field label="Date d'effet" className="w-44" hint="À partir de quand cette répartition s'applique.">
-          <Input type="date" value={dateEffet} onChange={(e) => setDateEffet(e.target.value)} />
-        </Field>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="secondary" size="sm" onClick={() => repartir('superficie')}>
-            <Ruler className="h-4 w-4" /> Répartir par superficie
-          </Button>
-          <Button variant="secondary" size="sm" onClick={() => repartir('egal')}>
-            <Equal className="h-4 w-4" /> Parts égales
-          </Button>
+      {/* Paramètres de la répartition | aides de calcul */}
+      <Card className="grid md:grid-cols-[minmax(0,1fr)_auto]">
+        <div className="grid gap-4 p-4 sm:grid-cols-2">
+          <Field label="Base de tantièmes" hint="Convention d’affichage (ex. 1 000 ou 10 000).">
+            <SearchSelect value={base} onChange={setBase} options={BASES as any} />
+          </Field>
+          <Field label="Date d'effet" hint="La répartition s’applique à partir de cette date.">
+            <Input type="date" value={dateEffet} onChange={(e) => setDateEffet(e.target.value)} />
+          </Field>
+        </div>
+        <div className="border-t border-border p-4 md:border-l md:border-t-0">
+          <p className="mb-1.5 text-ui font-medium">Aides au calcul</p>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="secondary" onClick={() => repartir('superficie')}>
+              <Ruler className="h-4 w-4" /> Par superficie
+            </Button>
+            <Button variant="secondary" onClick={() => repartir('egal')}>
+              <Equal className="h-4 w-4" /> Parts égales
+            </Button>
+          </div>
+          <p className="mt-1.5 text-2xs text-muted-foreground">Pré-remplit les tantièmes, ajustables ensuite.</p>
         </div>
       </Card>
 
@@ -411,13 +412,15 @@ function EditeurTantiemes({
                 <Td className="text-muted-foreground">{LABELS[l.type] ?? l.type}</Td>
                 <Td className="text-muted-foreground">{l.batiment?.nom ?? '—'}</Td>
                 <Td numeric className="text-muted-foreground">
-                  {l.superficie ? `${Number(l.superficie)} m²` : '—'}
+                  {l.superficie ? `${Number(l.superficie).toLocaleString('fr-FR', { maximumFractionDigits: 2 })} m²` : '—'}
                 </Td>
                 <Td numeric>
                   <Input
                     inputMode="numeric"
                     value={valeurs[l.id] ?? '0'}
                     onChange={(e) => setVal(l.id, e.target.value)}
+                    placeholder="0"
+                    aria-label={`Tantièmes du lot ${l.reference}`}
                     className="ml-auto h-9 w-24 text-right"
                   />
                 </Td>

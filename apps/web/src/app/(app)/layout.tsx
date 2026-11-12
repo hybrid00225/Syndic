@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import { usePreferences } from '@/lib/preferences';
+import { useNavigationTracker } from '@/lib/back';
 import { Sidebar } from '@/components/sidebar';
 import { MobileNav } from '@/components/mobile-nav';
 import { TopNav } from '@/components/top-nav';
@@ -22,6 +23,7 @@ export default function AppLayout({
   const { prefs } = usePreferences();
   const [navOpen, setNavOpen] = useState(false);
   const topnav = prefs.layout === 'topnav';
+  useNavigationTracker();
 
   useEffect(() => {
     if (!loading && !user) router.replace('/login');

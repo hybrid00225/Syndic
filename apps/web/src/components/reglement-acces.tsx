@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import {
   Plus,
   Trash2,
@@ -9,12 +9,11 @@ import {
   DoorOpen,
   X,
   Download,
-  Upload,
-  FileText,
   CheckCircle2,
 } from 'lucide-react';
 import { api, fetchDocument } from '@/lib/api';
 import { useDocumentPreview } from '@/components/ui/document-preview';
+import { FileUpload, FORMATS } from '@/components/ui/file-upload';
 import { useApi, useInvalidate } from '@/lib/query';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -84,7 +83,6 @@ export function ReglementAcces({ coproprieteId }: { coproprieteId: string }) {
 
 const videReglement = { dateAdoption: '', reference: '', description: '', documentId: '' };
 
-const koMo = (o: number) => (o < 1024 * 1024 ? `${Math.round(o / 1024)} Ko` : `${(o / (1024 * 1024)).toFixed(1)} Mo`);
 
 function Reglement({
   coproprieteId,
@@ -102,7 +100,6 @@ function Reglement({
   >(null);
   const [fichier, setFichier] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
-  const fileInput = useRef<HTMLInputElement>(null);
 
   const refresh = () => invalidate(`/coproprietes/${coproprieteId}/reglement-versions`);
 
@@ -217,45 +214,11 @@ function Reglement({
             <Field label="Référence" hint="Ex. acte notarié, n° de dépôt.">
               <Input value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} placeholder="Acte du 12/03/2020" />
             </Field>
-            <Field className="sm:col-span-2" label="Document (PDF)" hint="Téléversez le fichier du règlement (PDF, image — 15 Mo max).">
-              <div className="flex flex-wrap items-center gap-3">
-                <input
-                  ref={fileInput}
-                  type="file"
-                  accept="application/pdf,image/png,image/jpeg,image/webp"
-                  className="hidden"
-                  onChange={(e) => setFichier(e.target.files?.[0] ?? null)}
-                />
-                <Button type="button" variant="secondary" size="sm" onClick={() => fileInput.current?.click()}>
-                  <Upload className="h-4 w-4" /> Choisir un fichier
-                </Button>
-                {fichier ? (
-                  <span className="flex items-center gap-2 text-ui">
-                    <FileText className="h-4 w-4 text-primary" />
-                    {fichier.name} <span className="text-2xs text-muted-foreground">({koMo(fichier.size)})</span>
-                    <IconButton
-                      label="Retirer le fichier"
-                      icon={X}
-                      size="xs"
-                      tone="danger"
-                      onClick={() => {
-                        setFichier(null);
-                        if (fileInput.current) fileInput.current.value = '';
-                      }}
-                    />
-                  </span>
-                ) : form.documentNom ? (
-                  <span className="flex items-center gap-2 text-ui text-muted-foreground">
-                    <FileText className="h-4 w-4" /> {form.documentNom}
-                    <span className="text-2xs">(conservé — choisissez un fichier pour le remplacer)</span>
-                  </span>
-                ) : (
-                  <span className="text-2xs text-muted-foreground">Aucun fichier.</span>
-                )}
-              </div>
-            </Field>
             <Field className="sm:col-span-2" label="Description / modifications">
               <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={2} placeholder="Objet de cette version…" />
+            </Field>
+            <Field className="sm:col-span-2" label="Document du règlement" hint="Acte signé ou copie numérisée.">
+              <FileUpload value={fichier} onChange={setFichier} formats={FORMATS.pdfImages} existing={form.documentNom} />
             </Field>
           </div>
         </Modal>
