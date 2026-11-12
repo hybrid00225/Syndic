@@ -132,13 +132,20 @@ model Copropriete {
   dateCreation         DateTime          @default(now()) // règle 1.14
   dateMiseExploitation DateTime? // règle 1.14
 
-  syndic    Syndic                @relation(fields: [syndicId], references: [id])
-  batiments Batiment[]
-  lots      Lot[]
-  roles     UserCoproprieteRole[]
-  cles      CleRepartition[]
-  appels    AppelDeFonds[]
-  paiements Paiement[]
+  syndic          Syndic                @relation(fields: [syndicId], references: [id])
+  batiments       Batiment[]
+  lots            Lot[]
+  roles           UserCoproprieteRole[]
+  cles            CleRepartition[]
+  appels          AppelDeFonds[]
+  paiements       Paiement[]
+  exercices       Exercice[]
+  budgets         Budget[]
+  partiesCommunes PartieCommune[]
+  equipements     Equipement[]
+  acces           Acces[]
+  reglements      ReglementVersion[]
+  documents       Document[]
 
   @@index([syndicId])
 }
@@ -148,9 +155,12 @@ model Batiment {
   coproprieteId String
   nom           String // ex. "Bâtiment A", "Bloc 1"
 
-  copropriete Copropriete @relation(fields: [coproprieteId], references: [id])
-  niveaux     Niveau[]
-  lots        Lot[]
+  copropriete     Copropriete     @relation(fields: [coproprieteId], references: [id])
+  niveaux         Niveau[]
+  lots            Lot[]
+  partiesCommunes PartieCommune[]
+  equipements     Equipement[]
+  acces           Acces[]
 
   @@index([coproprieteId])
 }
@@ -184,25 +194,33 @@ enum LotStatut {
   EN_TRAVAUX
   INDISPONIBLE
   VENDU
+  FUSIONNE // lot absorbé par une fusion (terminal, conservé pour l'historique)
+  SUBDIVISE // lot éclaté par une subdivision (terminal, conservé pour l'historique)
 }
 
 model Lot {
-  id            String    @id @default(uuid())
-  coproprieteId String
-  batimentId    String?
-  niveauId      String?
-  reference     String // identifiant unique DANS la copropriété (ex. "A101")
-  type          LotType
-  designation   String?
-  superficie    Decimal?  @db.Decimal(10, 2) // m² (surface, PAS de l'argent)
-  statut        LotStatut @default(VACANT)
+  id             String    @id @default(uuid())
+  coproprieteId  String
+  batimentId     String?
+  niveauId       String?
+  lotPrincipalId String? // si ce lot est une annexe d'un lot principal (règle 2.11)
+  origineLotId   String? // lot dont celui-ci est issu (subdivision/fusion, règles 2.13-14)
+  reference      String // identifiant unique DANS la copropriété (ex. "A101")
+  type           LotType
+  designation    String?
+  superficie     Decimal?  @db.Decimal(10, 2) // m² (surface, PAS de l'argent)
+  statut         LotStatut @default(VACANT)
 
-  copropriete Copropriete          @relation(fields: [coproprieteId], references: [id])
-  batiment    Batiment?            @relation(fields: [batimentId], references: [id])
-  niveau      Niveau?              @relation(fields: [niveauId], references: [id])
-  detentions  DetentionPropriete[]
-  tantiemes   Tantieme[]
-  lignesAppel LigneAppelDeFonds[]
+  copropriete  Copropriete          @relation(fields: [coproprieteId], references: [id])
+  batiment     Batiment?            @relation(fields: [batimentId], references: [id])
+  niveau       Niveau?              @relation(fields: [niveauId], references: [id])
+  lotPrincipal Lot?                 @relation("Annexes", fields: [lotPrincipalId], references: [id])
+  annexes      Lot[]                @relation("Annexes")
+  origineLot   Lot?                 @relation("Lignee", fields: [origineLotId], references: [id])
+  lotsDerivies Lot[]                @relation("Lignee")
+  detentions   DetentionPropriete[]
+  tantiemes    Tantieme[]
+  lignesAppel  LigneAppelDeFonds[]
 
   @@unique([coproprieteId, reference])
   @@index([coproprieteId])
@@ -217,22 +235,52 @@ enum PersonneType {
   MORALE
 }
 
+// Statut d'un copropriétaire (règles 3.11, 3.21, 3.22). Un statut non ACTIF ne
+// supprime jamais ses droits de propriété ni son historique.
+enum PersonneStatut {
+  ACTIF
+  SUSPENDU // accès applicatifs suspendus (3.21)
+  DECEDE // décédé, lots conservés (3.22)
+  SUCCESSION // succession non liquidée (3.11)
+}
+
+// Mode de réception des notifications (règle 3.19).
+enum ModeNotification {
+  EMAIL
+  SMS
+  COURRIER
+  AUCUN
+}
+
+// Nature d'une représentation (règles 3.5, 3.6, 3.12).
+enum NatureRepresentation {
+  MANDATAIRE
+  TUTEUR
+  REPRESENTANT_LEGAL
+}
+
 // Une personne vit au niveau du SYNDIC : elle peut posséder des lots
 // dans plusieurs copropriétés du même syndic (règle 3.15).
 model Personne {
-  id        String       @id @default(uuid())
-  syndicId  String
-  type      PersonneType
-  nom       String // nom de famille ou raison sociale
-  prenom    String? // personnes physiques
-  actif     Boolean      @default(true)
-  createdAt DateTime     @default(now())
+  id                   String                @id @default(uuid())
+  syndicId             String
+  type                 PersonneType
+  nom                  String // nom de famille ou raison sociale
+  prenom               String? // personnes physiques
+  actif                Boolean               @default(true)
+  statut               PersonneStatut        @default(ACTIF)
+  modeNotification     ModeNotification      @default(EMAIL)
+  representantId       String? // mandataire / tuteur / représentant légal (3.5-3.6)
+  natureRepresentation NatureRepresentation?
+  createdAt            DateTime              @default(now())
 
-  syndic     Syndic               @relation(fields: [syndicId], references: [id])
-  contacts   Contact[]
-  detentions DetentionPropriete[]
-  lignesDues LigneAppelDeFonds[]  @relation("Redevable")
-  paiements  Paiement[]           @relation("Payeur")
+  syndic      Syndic               @relation(fields: [syndicId], references: [id])
+  contacts    Contact[]
+  detentions  DetentionPropriete[]
+  lignesDues  LigneAppelDeFonds[]  @relation("Redevable")
+  paiements   Paiement[]           @relation("Payeur")
+  representant Personne?           @relation("Representation", fields: [representantId], references: [id])
+  represente  Personne[]           @relation("Representation")
 
   @@index([syndicId])
 }
@@ -295,8 +343,9 @@ model CleRepartition {
   nom           String // ex. "Charges générales", "Ascenseur A"
   description   String?
 
-  copropriete Copropriete             @relation(fields: [coproprieteId], references: [id])
-  versions    CleRepartitionVersion[]
+  copropriete  Copropriete             @relation(fields: [coproprieteId], references: [id])
+  versions     CleRepartitionVersion[]
+  postesBudget PosteBudget[]
 
   @@index([coproprieteId])
 }
@@ -315,6 +364,77 @@ model CleRepartitionVersion {
   postes    PosteAppel[]
 
   @@index([cleId, dateEffet])
+}
+
+// =====================================================================
+// MODULE — EXERCICES (domaine 25) & BUDGETS PRÉVISIONNELS (domaine 8)
+// =====================================================================
+
+enum ExerciceStatut {
+  OUVERT
+  EN_CLOTURE
+  CLOTURE
+}
+
+model Exercice {
+  id            String         @id @default(uuid())
+  coproprieteId String
+  libelle       String // ex. "Exercice 2026"
+  dateDebut     DateTime
+  dateFin       DateTime
+  statut        ExerciceStatut @default(OUVERT)
+  createdAt     DateTime       @default(now())
+
+  copropriete Copropriete @relation(fields: [coproprieteId], references: [id])
+  budgets     Budget[]
+
+  @@index([coproprieteId])
+}
+
+enum BudgetStatut {
+  BROUILLON
+  SOUMIS
+  APPROUVE
+  REJETE
+}
+
+model Budget {
+  id              String       @id @default(uuid())
+  coproprieteId   String
+  exerciceId      String
+  libelle         String?
+  version         Int          @default(1)
+  statut          BudgetStatut @default(BROUILLON)
+  dateApprobation DateTime?
+  createdAt       DateTime     @default(now())
+
+  copropriete Copropriete   @relation(fields: [coproprieteId], references: [id])
+  exercice    Exercice      @relation(fields: [exerciceId], references: [id])
+  postes      PosteBudget[]
+
+  @@index([coproprieteId])
+  @@index([exerciceId])
+}
+
+// Nature d'une dépense prévue (règles 8.9 / 8.10).
+enum NaturePoste {
+  RECURRENTE
+  EXCEPTIONNELLE
+}
+
+model PosteBudget {
+  id           String      @id @default(uuid())
+  budgetId     String
+  libelle      String // ex. "Gardiennage"
+  categorie    String? // catégorie comptable (règle 8.7)
+  cleId        String? // clé de répartition associée (règle 8.8)
+  nature       NaturePoste @default(RECURRENTE)
+  montantPrevu BigInt // entier, unité de la devise
+
+  budget Budget          @relation(fields: [budgetId], references: [id])
+  cle    CleRepartition? @relation(fields: [cleId], references: [id])
+
+  @@index([budgetId])
 }
 
 model Tantieme {
@@ -476,4 +596,147 @@ model Relance {
   dateEnvoi      DateTime     @default(now())
 
   @@index([coproprieteId, personneId])
+}
+
+// =====================================================================
+// MODULE — PATRIMOINE TECHNIQUE : PARTIES COMMUNES (domaine 1.8) &
+// ÉQUIPEMENTS (domaine 7). Inventaire technique de la copropriété.
+// =====================================================================
+
+enum PartieCommuneType {
+  GENERALE // commune à toute la copropriété (règle 1.8)
+  SPECIALE // commune à certains bâtiments / lots seulement
+}
+
+model PartieCommune {
+  id            String            @id @default(uuid())
+  coproprieteId String
+  batimentId    String? // rattachement optionnel à un bâtiment (partie spéciale)
+  nom           String // ex. "Hall", "Toiture", "Cour", "Local vélos"
+  type          PartieCommuneType @default(GENERALE)
+  description   String?
+  createdAt     DateTime          @default(now())
+
+  copropriete Copropriete  @relation(fields: [coproprieteId], references: [id])
+  batiment    Batiment?    @relation(fields: [batimentId], references: [id])
+  equipements Equipement[]
+
+  @@index([coproprieteId])
+}
+
+// Catégories d'équipements (exemples de l'analyse, domaine 7).
+enum EquipementCategorie {
+  ASCENSEUR
+  GROUPE_ELECTROGENE
+  POMPE
+  SURPRESSEUR
+  RESERVOIR_EAU
+  PORTAIL
+  CAMERA
+  SYSTEME_INCENDIE
+  PISCINE
+  CLIMATISATION
+  INSTALLATION_ELECTRIQUE
+  ECLAIRAGE
+  CONTROLE_ACCES
+  AUTRE
+}
+
+// Cycle de vie d'un équipement (règles 7.13 → 7.17).
+enum EquipementEtat {
+  EN_SERVICE
+  EN_PANNE
+  EN_MAINTENANCE
+  HORS_SERVICE
+  REMPLACE
+}
+
+model Equipement {
+  id               String              @id @default(uuid())
+  coproprieteId    String
+  batimentId       String? // affecté à un bâtiment (règle 7.3)
+  partieCommuneId  String? // situé dans une partie commune (règle 7.4)
+  nom              String // ex. "Ascenseur A"
+  categorie        EquipementCategorie // règle 7.5
+  reference        String // règle 7.6
+  numeroSerie      String? // règle 7.7
+  dateInstallation DateTime? // règle 7.8
+  garantieFin      DateTime? // fin de garantie (règle 7.9)
+  fournisseur      String? // texte libre tant que le module Prestataires n'existe pas (règle 7.10)
+  etat             EquipementEtat      @default(EN_SERVICE)
+  notes            String?
+  createdAt        DateTime            @default(now())
+
+  copropriete   Copropriete    @relation(fields: [coproprieteId], references: [id])
+  batiment      Batiment?      @relation(fields: [batimentId], references: [id])
+  partieCommune PartieCommune? @relation(fields: [partieCommuneId], references: [id])
+
+  @@unique([coproprieteId, reference])
+  @@index([coproprieteId])
+  @@index([batimentId])
+}
+
+// =====================================================================
+// MODULE — ACCÈS (domaine 1.9) & RÈGLEMENT DE COPROPRIÉTÉ (domaines 1.10-11)
+// =====================================================================
+
+enum AccesType {
+  PIETON
+  VEHICULE
+  PARKING
+  LIVRAISON
+  SECOURS
+  AUTRE
+}
+
+model Acces {
+  id            String    @id @default(uuid())
+  coproprieteId String
+  batimentId    String? // accès rattaché à un bâtiment précis (optionnel)
+  nom           String // ex. "Entrée principale", "Portail parking"
+  type          AccesType @default(PIETON)
+  description   String?
+  createdAt     DateTime  @default(now())
+
+  copropriete Copropriete @relation(fields: [coproprieteId], references: [id])
+  batiment    Batiment?   @relation(fields: [batimentId], references: [id])
+
+  @@index([coproprieteId])
+}
+
+// Une copropriété possède UN règlement, conservé en VERSIONS successives
+// (règles 1.10-1.11). Une seule version « courante » (en vigueur) à la fois.
+model ReglementVersion {
+  id            String   @id @default(uuid())
+  coproprieteId String
+  version       Int      @default(1)
+  dateAdoption  DateTime? // date d'adoption / entrée en vigueur
+  reference     String? // référence du document (ex. acte notarié)
+  description   String?
+  documentId    String? // document (PDF) téléversé — remplace l'ancien lien URL
+  courant       Boolean  @default(true) // version en vigueur
+  createdAt     DateTime @default(now())
+
+  copropriete Copropriete @relation(fields: [coproprieteId], references: [id])
+  document    Document?   @relation(fields: [documentId], references: [id])
+
+  @@index([coproprieteId])
+}
+
+// Fichier téléversé (PDF, image…). Stockage local pour le MVP ; la clé
+// `cheminStockage` pointera vers S3/MinIO quand le stockage objet sera branché.
+model Document {
+  id             String   @id @default(uuid())
+  syndicId       String
+  coproprieteId  String?
+  nomOriginal    String // nom affiché (tel que téléversé)
+  cheminStockage String // nom de fichier interne (uuid.ext)
+  mimeType       String
+  taille         Int // octets
+  createdAt      DateTime @default(now())
+
+  copropriete Copropriete?       @relation(fields: [coproprieteId], references: [id])
+  reglements  ReglementVersion[]
+
+  @@index([coproprieteId])
 }

@@ -14,16 +14,23 @@ import {
   Wallet,
   FileText,
   Hammer,
+  ScrollText,
+  Split,
 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { StatTile } from '@/components/ui/stat-tile';
+import { Ledger, Stat, Composition } from '@/components/ui/stat';
 import { useConfirm } from '@/components/ui/confirm';
 import { PageLoader } from '@/components/ui/spinner';
 import { PageHeader } from '@/components/page-header';
 import { BatimentsLots } from '@/components/batiments-lots';
+import { RepartitionCles } from '@/components/repartition-cles';
+import { EquipementsPatrimoine } from '@/components/equipements-patrimoine';
+import { ReglementAcces } from '@/components/reglement-acces';
+import { LotOperations } from '@/components/lot-operations';
+import { CoproprietairesCopro } from '@/components/coproprietaires-copro';
 import { formatDate, STATUT_COPRO, cn } from '@/lib/utils';
 import { LABELS } from '@/lib/constants';
 
@@ -64,7 +71,12 @@ const statutTone: Record<string, 'success' | 'warning' | 'neutral'> = {
 
 const TABS = [
   { key: 'infos', label: 'Informations', icon: FileText },
-  { key: 'patrimoine', label: 'Bâtiments & lots', icon: Building2 },
+  { key: 'batiments', label: 'Bâtiments', icon: Building2 },
+  { key: 'lots', label: 'Lots', icon: Home },
+  { key: 'operations', label: 'Opérations lots', icon: Split },
+  { key: 'repartition', label: 'Répartition', icon: Coins },
+  { key: 'equipements', label: 'Équipements', icon: Hammer },
+  { key: 'reglement', label: 'Règlement & accès', icon: ScrollText },
   { key: 'coproprietaires', label: 'Copropriétaires', icon: Users },
   { key: 'budgets', label: 'Budgets', icon: Wallet },
   { key: 'documents', label: 'Documents', icon: FileText },
@@ -78,7 +90,8 @@ export default function CoproprieteDetailPage() {
   const [lots, setLots] = useState<Lot[]>([]);
   const [tab, setTab] = useState<(typeof TABS)[number]['key']>(() => {
     if (typeof window !== 'undefined') {
-      const t = new URLSearchParams(window.location.search).get('tab');
+      let t = new URLSearchParams(window.location.search).get('tab');
+      if (t === 'patrimoine') t = 'batiments'; // anciens liens
       if (t && TABS.some((x) => x.key === t)) {
         return t as (typeof TABS)[number]['key'];
       }
@@ -90,6 +103,14 @@ export default function CoproprieteDetailPage() {
     api<Copropriete>(`/coproprietes/${id}`).then(setCopro).catch(() => setCopro(null));
     api<Lot[]>(`/coproprietes/${id}/lots`).then(setLots).catch(() => setLots([]));
   }, [id]);
+
+  // Onglet courant reflété dans l'URL (lien partageable, retour arrière).
+  function changerOnglet(k: (typeof TABS)[number]['key']) {
+    setTab(k);
+    const url = new URL(window.location.href);
+    url.searchParams.set('tab', k);
+    window.history.replaceState(null, '', url);
+  }
 
   if (!copro) return <PageLoader />;
 
@@ -135,26 +156,54 @@ export default function CoproprieteDetailPage() {
       />
 
       {/* Synthèse */}
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <StatTile label="Bâtiments" value={copro.batiments.length} icon={Building2} filled />
-        <StatTile label="Lots" value={lots.length} icon={Home} tone="success" />
-        <StatTile
+      <Ledger>
+        <Stat
+          lead
+          label="Lots"
+          value={lots.length}
+          info="Lots de la copropriété, par statut d'occupation."
+          viz={
+            <Composition
+              segments={[
+                { label: 'Occupés', value: lots.filter((l) => l.statut === 'OCCUPE_PROPRIETAIRE' || l.statut === 'LOUE').length, tone: 'ink' },
+                { label: 'Vacants', value: lots.filter((l) => l.statut === 'VACANT').length, tone: 'warn' },
+                { label: 'Indisponibles', value: lots.filter((l) => l.statut === 'EN_TRAVAUX' || l.statut === 'INDISPONIBLE').length, tone: 'soft' },
+                { label: 'Vendus', value: lots.filter((l) => l.statut === 'VENDU').length, tone: 'empty' },
+              ]}
+            />
+          }
+        />
+        <Stat
+          label="Bâtiments"
+          value={copro.batiments.length}
+          info="Bâtiments déclarés dans cette copropriété."
+          note={copro.batiments.length ? copro.batiments.map((b) => b.nom).slice(0, 3).join(' · ') : 'aucun bâtiment'}
+        />
+        <Stat
           label="Statut"
           value={STATUT_COPRO[copro.statut] ?? copro.statut}
-          icon={Layers}
-          tone="info"
+          tone={copro.statut === 'EN_CREATION' ? 'warning' : 'default'}
+          info="Cycle de vie : en création, active, inactive, clôturée."
+          note={copro.statut === 'EN_CREATION' ? 'à finaliser avant le premier appel' : 'statut courant'}
         />
-        <StatTile label="Devise" value={copro.devise} icon={Coins} tone="warning" />
-      </div>
+        <Stat
+          label="Devise"
+          value={copro.devise}
+          info="Devise de tous les appels de fonds et encaissements de cette copropriété."
+          note="comptes tenus dans cette devise"
+        />
+      </Ledger>
 
       {/* Onglets */}
-      <div className="flex gap-1 overflow-x-auto border-b border-border">
+      <div role="tablist" aria-label="Sections de la copropriété" className="no-print flex gap-1 overflow-x-auto border-b border-border">
         {TABS.map((t) => {
           const Icon = t.icon;
           return (
             <button
               key={t.key}
-              onClick={() => setTab(t.key)}
+              onClick={() => changerOnglet(t.key)}
+              role="tab"
+              aria-selected={tab === t.key}
               className={cn(
                 '-mb-px flex items-center gap-2 whitespace-nowrap border-b-2 px-4 py-2.5 text-sm font-medium transition-colors',
                 tab === t.key
@@ -164,6 +213,11 @@ export default function CoproprieteDetailPage() {
             >
               <Icon className="h-4 w-4" />
               {t.label}
+              {(t.key === 'batiments' || t.key === 'lots') && (
+                <span className="nums rounded-full bg-muted px-1.5 text-2xs text-muted-foreground">
+                  {t.key === 'batiments' ? copro.batiments.length : lots.length}
+                </span>
+              )}
             </button>
           );
         })}
@@ -224,15 +278,19 @@ export default function CoproprieteDetailPage() {
         </div>
       )}
 
-      {tab === 'patrimoine' && <BatimentsLots coproprieteId={id} />}
-
-      {tab === 'coproprietaires' && (
-        <ModuleAVenir
-          icon={Users}
-          title="Copropriétaires & détentions"
-          desc="Le cœur propriété (relation M:N, quote-parts, usufruit) est déjà opérationnel côté serveur. La vue par copropriété arrive prochainement."
-        />
+      {(tab === 'batiments' || tab === 'lots') && (
+        <BatimentsLots coproprieteId={id} view={tab} onViewChange={changerOnglet} />
       )}
+
+      {tab === 'operations' && <LotOperations coproprieteId={id} />}
+
+      {tab === 'repartition' && <RepartitionCles coproprieteId={id} />}
+
+      {tab === 'equipements' && <EquipementsPatrimoine coproprieteId={id} />}
+
+      {tab === 'reglement' && <ReglementAcces coproprieteId={id} />}
+
+      {tab === 'coproprietaires' && <CoproprietairesCopro coproprieteId={id} />}
       {tab === 'budgets' && (
         <ModuleAVenir
           icon={Wallet}

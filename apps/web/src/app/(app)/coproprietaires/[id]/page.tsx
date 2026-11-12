@@ -15,10 +15,11 @@ import {
   Contact as ContactIcon,
 } from 'lucide-react';
 import { api } from '@/lib/api';
+import { Table, THead, Th, Td, Tr } from '@/components/ui/table';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { StatTile } from '@/components/ui/stat-tile';
+import { Ledger, Stat, Composition } from '@/components/ui/stat';
 import { useConfirm } from '@/components/ui/confirm';
 import { PageLoader } from '@/components/ui/spinner';
 import { PageHeader } from '@/components/page-header';
@@ -123,17 +124,44 @@ export default function CoproprietaireDetailPage() {
         }
       />
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <StatTile label="Lots détenus" value={p.detentions.length} icon={Home} filled />
-        <StatTile label="Coordonnées" value={p.contacts.length} icon={ContactIcon} tone="info" />
-        <StatTile
-          label="Type"
-          value={p.type === 'MORALE' ? 'Morale' : 'Physique'}
-          icon={p.type === 'MORALE' ? Building : User}
-          tone="success"
+      <Ledger>
+        <Stat
+          lead
+          label="Lots détenus"
+          value={p.detentions.length}
+          info="Lots sur lesquels ce copropriétaire détient un droit, par nature du droit."
+          viz={
+            <Composition
+              segments={[
+                { label: 'Pleine propriété', value: p.detentions.filter((d) => d.natureDroit === 'PLEINE_PROPRIETE').length, tone: 'ink' },
+                { label: 'Indivision', value: p.detentions.filter((d) => d.natureDroit === 'INDIVISION').length, tone: 'soft' },
+                { label: 'Usufruit', value: p.detentions.filter((d) => d.natureDroit === 'USUFRUIT').length, tone: 'warn' },
+                { label: 'Nue-propriété', value: p.detentions.filter((d) => d.natureDroit === 'NUE_PROPRIETE').length, tone: 'empty' },
+              ]}
+            />
+          }
         />
-        <StatTile label="Statut" value={p.actif ? 'Actif' : 'Inactif'} icon={User} tone="warning" />
-      </div>
+        <Stat
+          label="Copropriétés"
+          value={new Set(p.detentions.map((d) => d.lot.coproprieteId)).size}
+          info="Copropriétés distinctes dans lesquelles il détient des lots."
+          note="concernées"
+        />
+        <Stat
+          label="Coordonnées"
+          value={p.contacts.length}
+          tone={p.contacts.length === 0 ? 'danger' : 'default'}
+          info="Emails, téléphones et adresses enregistrés pour les appels de fonds et relances."
+          note={p.contacts.length === 0 ? 'injoignable : ajoutez un email' : p.contacts.map((c) => LABELS[c.type] ?? c.type).join(' · ')}
+        />
+        <Stat
+          label="Statut"
+          value={p.actif ? 'Actif' : 'Inactif'}
+          tone={p.actif ? 'default' : 'warning'}
+          info="Une fiche inactive n'est plus proposée dans les nouvelles attributions de lots."
+          note={p.type === 'MORALE' ? 'Personne morale' : 'Personne physique'}
+        />
+      </Ledger>
 
       <div className="grid gap-5 lg:grid-cols-3">
         {/* Identité + coordonnées */}
@@ -191,45 +219,45 @@ export default function CoproprietaireDetailPage() {
               </p>
             </div>
           ) : (
-            <div className="mt-3 overflow-x-auto rounded-lg border border-border">
-              <table className="w-full border-collapse text-sm">
-                <thead>
-                  <tr className="bg-muted text-left text-xs uppercase tracking-wider text-muted-foreground">
-                    <th className="border border-border px-3 py-2.5 font-semibold">Lot</th>
-                    <th className="border border-border px-3 py-2.5 font-semibold">Copropriété</th>
-                    <th className="border border-border px-3 py-2.5 font-semibold">Quote-part</th>
-                    <th className="border border-border px-3 py-2.5 font-semibold">Nature</th>
-                    <th className="border border-border px-3 py-2.5 font-semibold">Période</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {p.detentions.map((d) => (
-                    <tr key={d.id} className="bg-card">
-                      <td className="border border-border px-3 py-2.5 font-medium">
-                        <Link href={`/coproprietes/${d.lot.coproprieteId}/lots/${d.lot.id}/modifier`} className="hover:text-primary hover:underline">
-                          {d.lot.reference}
-                        </Link>
-                      </td>
-                      <td className="border border-border px-3 py-2.5">
-                        <Link href={`/coproprietes/${d.lot.coproprieteId}`} className="text-primary hover:underline">
-                          {d.lot.copropriete.nom}
-                        </Link>
-                      </td>
-                      <td className="border border-border px-3 py-2.5 nums">
-                        {d.quotePartNum}/{d.quotePartDen}
-                      </td>
-                      <td className="border border-border px-3 py-2.5">
-                        <Badge tone="neutral">{LABELS[d.natureDroit] ?? d.natureDroit}</Badge>
-                      </td>
-                      <td className="border border-border px-3 py-2.5 text-muted-foreground">
-                        {formatDate(d.dateDebut)}
-                        {d.dateFin ? ` → ${formatDate(d.dateFin)}` : ' → en cours'}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <Table className="mt-3">
+              <THead>
+                <Th>Lot</Th>
+                <Th>Copropriété</Th>
+                <Th numeric>Quote-part</Th>
+                <Th>Nature du droit</Th>
+                <Th>Période</Th>
+              </THead>
+              <tbody>
+                {p.detentions.map((d) => (
+                  <Tr key={d.id} href={`/coproprietes/${d.lot.coproprieteId}/lots/${d.lot.id}/modifier`}>
+                    <Td>
+                      <Link
+                        href={`/coproprietes/${d.lot.coproprieteId}/lots/${d.lot.id}/modifier`}
+                        className="font-medium underline-offset-4 hover:underline"
+                      >
+                        {d.lot.reference}
+                      </Link>
+                    </Td>
+                    <Td>
+                      <Link href={`/coproprietes/${d.lot.coproprieteId}`} className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
+                        {d.lot.copropriete.nom}
+                      </Link>
+                    </Td>
+                    <Td numeric>
+                      {d.quotePartNum}/{d.quotePartDen}
+                      <span className="ml-1.5 text-2xs text-muted-foreground">
+                        {Math.round((d.quotePartNum / d.quotePartDen) * 100)} %
+                      </span>
+                    </Td>
+                    <Td>{LABELS[d.natureDroit] ?? d.natureDroit}</Td>
+                    <Td className="nums text-muted-foreground">
+                      {formatDate(d.dateDebut)}
+                      {d.dateFin ? ` → ${formatDate(d.dateFin)}` : ' → en cours'}
+                    </Td>
+                  </Tr>
+                ))}
+              </tbody>
+            </Table>
           )}
         </Card>
       </div>

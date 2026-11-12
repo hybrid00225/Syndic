@@ -99,7 +99,7 @@ export function LotForm({
           body: JSON.stringify(body),
         });
       }
-      router.push(`/coproprietes/${coproprieteId}?tab=patrimoine`);
+      router.push(`/coproprietes/${coproprieteId}?tab=lots`);
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur');
@@ -194,7 +194,7 @@ export function LotForm({
         <Button
           type="button"
           variant="secondary"
-          onClick={() => router.push(`/coproprietes/${coproprieteId}?tab=patrimoine`)}
+          onClick={() => router.push(`/coproprietes/${coproprieteId}?tab=lots`)}
         >
           Annuler
         </Button>

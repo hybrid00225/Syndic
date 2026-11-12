@@ -2,7 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { Plus, Trash2, Users, X, Building, UserIcon } from 'lucide-react';
+import Link from 'next/link';
 import { api } from '@/lib/api';
+import { Table, THead, Th, Td, Tr } from '@/components/ui/table';
+import { RowAction, RowActions } from '@/components/ui/list';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -90,57 +93,47 @@ export function LotProprietaires({ lotId }: { lotId: string }) {
           </p>
         </div>
       ) : (
-        <div className="mt-4 overflow-x-auto rounded-lg border border-border">
-          <table className="w-full border-collapse text-sm">
-            <thead>
-              <tr className="bg-muted text-left text-xs uppercase tracking-wider text-muted-foreground">
-                <th className="border border-border px-3 py-2.5 font-semibold">Propriétaire</th>
-                <th className="border border-border px-3 py-2.5 font-semibold">Quote-part</th>
-                <th className="border border-border px-3 py-2.5 font-semibold">Nature</th>
-                <th className="border border-border px-3 py-2.5 font-semibold">Période</th>
-                <th className="border border-border px-3 py-2.5 text-right font-semibold">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {detentions.map((d) => (
-                <tr key={d.id} className="bg-card">
-                  <td className="border border-border px-3 py-2.5">
-                    <span className="flex items-center gap-2 font-medium">
-                      {d.personne.type === 'MORALE' ? (
-                        <Building className="h-4 w-4 text-info" />
-                      ) : (
-                        <UserIcon className="h-4 w-4 text-primary" />
-                      )}
-                      {nomP(d.personne)}
-                    </span>
-                  </td>
-                  <td className="border border-border px-3 py-2.5 nums">
-                    {d.quotePartNum}/{d.quotePartDen}
-                  </td>
-                  <td className="border border-border px-3 py-2.5">
-                    <Badge tone="neutral">{LABELS[d.natureDroit] ?? d.natureDroit}</Badge>
-                  </td>
-                  <td className="border border-border px-3 py-2.5 text-muted-foreground">
-                    {formatDate(d.dateDebut)}
-                    {d.dateFin ? ` → ${formatDate(d.dateFin)}` : ' → en cours'}
-                  </td>
-                  <td className="border border-border px-3 py-2.5">
-                    <div className="flex justify-end">
-                      <Tooltip label="Retirer">
-                        <button
-                          onClick={() => retirer(d)}
-                          className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-danger/10 hover:text-danger"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </Tooltip>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Table className="mt-4">
+          <THead>
+            <Th>Propriétaire</Th>
+            <Th numeric>Quote-part</Th>
+            <Th>Nature du droit</Th>
+            <Th>Période</Th>
+            <Th className="no-print w-[1%]">
+              <span className="sr-only">Actions</span>
+            </Th>
+          </THead>
+          <tbody>
+            {detentions.map((d) => (
+              <Tr key={d.id} href={`/coproprietaires/${d.personne.id}`}>
+                <Td>
+                  <Link href={`/coproprietaires/${d.personne.id}`} className="font-medium underline-offset-4 hover:underline">
+                    {nomP(d.personne)}
+                  </Link>
+                  <p className="text-2xs text-muted-foreground">
+                    {d.personne.type === 'MORALE' ? 'Personne morale' : 'Personne physique'}
+                  </p>
+                </Td>
+                <Td numeric>
+                  {d.quotePartNum}/{d.quotePartDen}
+                  <span className="ml-1.5 text-2xs text-muted-foreground">
+                    {Math.round((d.quotePartNum / d.quotePartDen) * 100)} %
+                  </span>
+                </Td>
+                <Td>{LABELS[d.natureDroit] ?? d.natureDroit}</Td>
+                <Td className="nums text-muted-foreground">
+                  {formatDate(d.dateDebut)}
+                  {d.dateFin ? ` → ${formatDate(d.dateFin)}` : ' → en cours'}
+                </Td>
+                <Td>
+                  <RowActions>
+                    <RowAction label="Retirer ce propriétaire" icon={Trash2} danger onClick={() => retirer(d)} />
+                  </RowActions>
+                </Td>
+              </Tr>
+            ))}
+          </tbody>
+        </Table>
       )}
 
       {open && (

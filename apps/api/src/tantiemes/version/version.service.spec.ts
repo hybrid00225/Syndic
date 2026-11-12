@@ -21,7 +21,8 @@ describe('VersionService (versioning des tantièmes)', () => {
         create: jest.fn(),
         findUnique: jest.fn(),
       },
-      tantieme: { createMany: jest.fn() },
+      tantieme: { createMany: jest.fn(), deleteMany: jest.fn() },
+      posteAppel: { count: jest.fn().mockResolvedValue(0) },
       // $transaction exécute le callback avec le mock prisma comme "tx".
       $transaction: jest.fn(async (fn: any) => fn(prisma)),
     };
@@ -117,5 +118,45 @@ describe('VersionService (versioning des tantièmes)', () => {
       data: expect.objectContaining({ totalTantiemes: 100 }),
     });
     expect(prisma.tantieme.createMany).toHaveBeenCalled();
+  });
+
+  describe('corrigerCourante (correction sur place)', () => {
+    beforeEach(() => {
+      prisma.cleRepartitionVersion.findFirst.mockResolvedValue({
+        id: 'v0',
+        dateEffet: new Date('2026-01-01'),
+        dateFin: null,
+      });
+    });
+
+    it('remplace les tantièmes de la version courante non utilisée', async () => {
+      prisma.posteAppel.count.mockResolvedValue(0);
+      await service.corrigerCourante(CLE, { ...baseDto } as any);
+
+      expect(prisma.tantieme.deleteMany).toHaveBeenCalledWith({
+        where: { versionId: 'v0' },
+      });
+      expect(prisma.cleRepartitionVersion.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'v0' },
+          data: expect.objectContaining({ totalTantiemes: 100 }),
+        }),
+      );
+    });
+
+    it('refuse la correction si la version a déjà servi à un appel', async () => {
+      prisma.posteAppel.count.mockResolvedValue(1);
+      await expect(
+        service.corrigerCourante(CLE, { ...baseDto } as any),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(prisma.tantieme.deleteMany).not.toHaveBeenCalled();
+    });
+
+    it('refuse la correction en l’absence de version courante', async () => {
+      prisma.cleRepartitionVersion.findFirst.mockResolvedValue(null);
+      await expect(
+        service.corrigerCourante(CLE, { ...baseDto } as any),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
   });
 });

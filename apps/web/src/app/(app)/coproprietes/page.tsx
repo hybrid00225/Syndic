@@ -9,13 +9,13 @@ import type { Copropriete } from '@/lib/types';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Ledger, Stat, Units } from '@/components/ui/stat';
+import { Ledger, Stat, Composition, Ring, Tokens } from '@/components/ui/stat';
 import { SearchSelect } from '@/components/ui/select';
 import { Tooltip } from '@/components/ui/tooltip';
 import { useAlert, useConfirm } from '@/components/ui/confirm';
 import { PageLoader } from '@/components/ui/spinner';
 import { EmptyState, ErrorState } from '@/components/ui/states';
-import { Table, Th, Td, Tr } from '@/components/ui/table';
+import { Table, THead, Th, Td, Tr } from '@/components/ui/table';
 import {
   ListToolbar,
   Pagination,
@@ -211,7 +211,7 @@ export default function CoproprietesPage() {
           onClick={() => setStatut('')}
           active={!statut}
           viz={
-            <Units
+            <Composition
               segments={[
                 { label: 'Actives', value: actives, tone: 'ink' },
                 { label: 'En création', value: enCreation, tone: 'warn' },
@@ -219,13 +219,6 @@ export default function CoproprietesPage() {
                 { label: 'Clôturées', value: cloturees, tone: 'empty' },
               ]}
             />
-          }
-          note={
-            <>
-              <span className="nums">{actives}</span> active{actives > 1 ? 's' : ''} ·{' '}
-              <span className="nums">{enCreation}</span> en création ·{' '}
-              <span className="nums">{inactives + cloturees}</span> hors exploitation
-            </>
           }
         />
         <Stat
@@ -235,7 +228,8 @@ export default function CoproprietesPage() {
           info="Copropriétés au statut « Active ». Cliquez pour filtrer."
           onClick={() => setStatut('ACTIVE')}
           active={statut === 'ACTIVE'}
-          note={`${Math.round((actives / copros.length) * 100)} % du portefeuille`}
+          aside={<Ring value={actives / copros.length} />}
+          note="part du portefeuille en exploitation"
         />
         <Stat
           label="À finaliser"
@@ -250,7 +244,8 @@ export default function CoproprietesPage() {
           label="Devises tenues"
           value={devises.length}
           info="Chaque copropriété tient ses comptes dans sa propre devise."
-          note={devises.join(' · ')}
+          aside={<Tokens items={devises} />}
+          note={devises.length > 1 ? 'comptes tenus séparément' : 'devise unique'}
         />
       </Ledger>
 
@@ -280,22 +275,20 @@ export default function CoproprietesPage() {
             Aucune copropriété ne correspond à ces critères.
           </EmptyState>
         ) : view === 'table' ? (
-          <Table>
-            <thead>
-              <tr>
-                <Th>Copropriété</Th>
-                <Th>Pays</Th>
-                <Th>Devise</Th>
-                <Th>Statut</Th>
-                <Th>Créée le</Th>
-                <Th className="no-print">
-                  <span className="sr-only">Actions</span>
-                </Th>
-              </tr>
-            </thead>
+          <Table footer={<Pagination {...paged} />}>
+            <THead>
+              <Th>Copropriété</Th>
+              <Th>Pays</Th>
+              <Th>Devise</Th>
+              <Th>Statut</Th>
+              <Th>Créée le</Th>
+              <Th className="no-print">
+                <span className="sr-only">Actions</span>
+              </Th>
+            </THead>
             <tbody>
               {paged.pageItems.map((c) => (
-                <Tr key={c.id}>
+                <Tr key={c.id} href={`/coproprietes/${c.id}`}>
                   <Td>
                     <Link href={`/coproprietes/${c.id}`} className="font-medium hover:underline underline-offset-4">
                       {c.nom}
@@ -346,7 +339,7 @@ export default function CoproprietesPage() {
           </div>
         )}
 
-        <Pagination {...paged} />
+        {view === 'cards' && filtered.length > 0 && <Pagination {...paged} />}
       </div>
     </div>
   );

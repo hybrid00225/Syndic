@@ -58,9 +58,14 @@ const config: Config = {
           from: { opacity: '0', transform: 'scale(0.98)' },
           to: { opacity: '1', transform: 'scale(1)' },
         },
+        'sheet-in': {
+          from: { transform: 'translateX(24px)', opacity: '0' },
+          to: { transform: 'translateX(0)', opacity: '1' },
+        },
       },
       animation: {
         'pop-in': 'pop-in 0.14s ease-out both',
+        'sheet-in': 'sheet-in 0.18s ease-out both',
       },
     },
   },

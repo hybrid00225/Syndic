@@ -19,7 +19,7 @@ import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { StatTile } from '@/components/ui/stat-tile';
+import { Ledger, Stat, Composition, Ring, Tokens } from '@/components/ui/stat';
 import { PageLoader } from '@/components/ui/spinner';
 import { formatDate, STATUT_COPRO } from '@/lib/utils';
 import { cn } from '@/lib/utils';
@@ -78,36 +78,45 @@ export default function DashboardPage() {
       </div>
 
       {/* KPI */}
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatTile
+      <Ledger>
+        <Stat
+          lead
           label="Copropriétés"
           value={copros.length}
-          icon={Home}
-          hint="dans votre portefeuille"
-          filled
+          info="Toutes les copropriétés de votre portefeuille, par statut."
+          viz={
+            <Composition
+              segments={[
+                { label: 'Actives', value: actives, tone: 'ink' },
+                { label: 'En création', value: enCreation, tone: 'warn' },
+                { label: 'Hors exploitation', value: copros.length - actives - enCreation, tone: 'soft' },
+              ]}
+            />
+          }
         />
-        <StatTile
-          label="Actives"
+        <Stat
+          label="En exploitation"
           value={actives}
-          icon={CheckCircle2}
-          tone="success"
-          hint="en exploitation"
+          unit={`/ ${copros.length}`}
+          info="Copropriétés au statut « Active »."
+          aside={<Ring value={copros.length ? actives / copros.length : 0} />}
+          note="part du portefeuille"
         />
-        <StatTile
-          label="En création"
+        <Stat
+          label="À finaliser"
           value={enCreation}
-          icon={Clock}
-          tone="warning"
-          hint="à finaliser"
+          tone={enCreation > 0 ? 'warning' : 'default'}
+          info="Copropriétés « En création » : à compléter avant le premier appel de fonds."
+          note={enCreation > 0 ? 'fiche ou patrimoine incomplet' : 'rien en attente'}
         />
-        <StatTile
+        <Stat
           label="Pays"
           value={pays}
-          icon={Globe2}
-          tone="info"
-          hint="juridictions"
+          info="Pays (juridictions) où se situent vos copropriétés."
+          aside={<Tokens items={[...new Set(copros.map((c) => c.pays))]} />}
+          note="juridictions"
         />
-      </div>
+      </Ledger>
 
       {/* Contenu principal + rail */}
       <div className="grid gap-5 lg:grid-cols-3">

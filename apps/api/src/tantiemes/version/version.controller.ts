@@ -4,6 +4,7 @@ import {
   Get,
   Param,
   ParseUUIDPipe,
+  Patch,
   Post,
   Query,
 } from '@nestjs/common';
@@ -20,6 +21,15 @@ export class VersionController {
     @Body() dto: CreateVersionDto,
   ) {
     return this.service.create(cleId, dto);
+  }
+
+  // Corrige la version courante sur place (tant qu'elle n'a pas servi).
+  @Patch('courante')
+  corrigerCourante(
+    @Param('cleId', ParseUUIDPipe) cleId: string,
+    @Body() dto: CreateVersionDto,
+  ) {
+    return this.service.corrigerCourante(cleId, dto);
   }
 
   @Get()

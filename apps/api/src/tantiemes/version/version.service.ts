@@ -20,34 +20,7 @@ export class VersionService {
     }
 
     const items = dto.tantiemes;
-    const lotIds = items.map((i) => i.lotId);
-
-    // RG-20 : un lot ne peut apparaître qu'une fois.
-    if (new Set(lotIds).size !== lotIds.length) {
-      throw new BadRequestException(
-        'Un même lot apparaît plusieurs fois dans la version',
-      );
-    }
-
-    // RG-18 : tous les lots appartiennent à la copropriété de la clé.
-    const lots = await this.prisma.lot.findMany({
-      where: { id: { in: lotIds }, coproprieteId: cle.coproprieteId },
-      select: { id: true },
-    });
-    if (lots.length !== lotIds.length) {
-      throw new BadRequestException(
-        "Un lot n'appartient pas à la copropriété de cette clé",
-      );
-    }
-
-    // RG-19 : total strictement positif (valeurs ≥ 0 garanties par le DTO).
-    const total = items.reduce((acc, i) => acc + i.valeur, 0);
-    if (total <= 0) {
-      throw new BadRequestException(
-        'Le total des tantièmes doit être strictement positif',
-      );
-    }
-
+    const total = await this.validerItems(cle.coproprieteId, items);
     const dateEffet = new Date(dto.dateEffet);
 
     // RG-21 : la nouvelle version doit être postérieure à la version courante.
@@ -85,11 +58,92 @@ export class VersionService {
     });
   }
 
+  // Corrige la version courante SUR PLACE (même date d'effet) tant qu'aucun
+  // appel de fonds ne s'en sert — pratique pour ajuster les tantièmes amorcés
+  // à la création. Dès que la version a servi, il faut en créer une nouvelle.
+  async corrigerCourante(cleId: string, dto: CreateVersionDto) {
+    const cle = await this.prisma.cleRepartition.findUnique({
+      where: { id: cleId },
+      select: { id: true, coproprieteId: true },
+    });
+    if (!cle) {
+      throw new NotFoundException(`Clé de répartition ${cleId} introuvable`);
+    }
+    const courante = await this.prisma.cleRepartitionVersion.findFirst({
+      where: { cleId, dateFin: null },
+    });
+    if (!courante) {
+      throw new BadRequestException(
+        "Aucune version courante à corriger : créez une première version",
+      );
+    }
+    // Si un poste d'appel référence cette version, elle est figée (traçabilité).
+    const utilisee = await this.prisma.posteAppel.count({
+      where: { cleVersionId: courante.id },
+    });
+    if (utilisee > 0) {
+      throw new BadRequestException(
+        'Cette version a déjà servi à un appel de fonds : créez une nouvelle version datée plutôt que de la corriger',
+      );
+    }
+
+    const total = await this.validerItems(cle.coproprieteId, dto.tantiemes);
+
+    return this.prisma.$transaction(async (tx) => {
+      await tx.tantieme.deleteMany({ where: { versionId: courante.id } });
+      await tx.tantieme.createMany({
+        data: dto.tantiemes.map((i) => ({
+          versionId: courante.id,
+          lotId: i.lotId,
+          valeur: i.valeur,
+        })),
+      });
+      return tx.cleRepartitionVersion.update({
+        where: { id: courante.id },
+        data: {
+          totalTantiemes: total,
+          // Une correction peut aussi redater la version (si pas encore utilisée).
+          dateEffet: new Date(dto.dateEffet),
+        },
+        include: { tantiemes: true },
+      });
+    });
+  }
+
   findByCle(cleId: string) {
     return this.prisma.cleRepartitionVersion.findMany({
       where: { cleId },
       orderBy: { dateEffet: 'desc' },
     });
+  }
+
+  // Contrôles RG-18 à RG-20 partagés ; renvoie le total (RG-19 : > 0).
+  private async validerItems(
+    coproprieteId: string,
+    items: { lotId: string; valeur: number }[],
+  ) {
+    const lotIds = items.map((i) => i.lotId);
+    if (new Set(lotIds).size !== lotIds.length) {
+      throw new BadRequestException(
+        'Un même lot apparaît plusieurs fois dans la version',
+      );
+    }
+    const lots = await this.prisma.lot.findMany({
+      where: { id: { in: lotIds }, coproprieteId },
+      select: { id: true },
+    });
+    if (lots.length !== lotIds.length) {
+      throw new BadRequestException(
+        "Un lot n'appartient pas à la copropriété de cette clé",
+      );
+    }
+    const total = items.reduce((acc, i) => acc + i.valeur, 0);
+    if (total <= 0) {
+      throw new BadRequestException(
+        'Le total des tantièmes doit être strictement positif',
+      );
+    }
+    return total;
   }
 
   // RG-22 : version applicable à une date (dateEffet ≤ D < dateFin ou dateFin null).

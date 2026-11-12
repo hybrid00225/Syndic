@@ -5,9 +5,15 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  IsUUID,
   ValidateNested,
 } from 'class-validator';
-import { PersonneType } from '@prisma/client';
+import {
+  ModeNotification,
+  NatureRepresentation,
+  PersonneStatut,
+  PersonneType,
+} from '@prisma/client';
 import { CreateContactDto } from './create-contact.dto';
 
 export class CreatePersonneDto {
@@ -22,6 +28,22 @@ export class CreatePersonneDto {
   @IsOptional()
   prenom?: string;
   // Le syndic est dérivé du token d'authentification.
+
+  @IsEnum(PersonneStatut)
+  @IsOptional()
+  statut?: PersonneStatut;
+
+  @IsEnum(ModeNotification)
+  @IsOptional()
+  modeNotification?: ModeNotification;
+
+  @IsUUID()
+  @IsOptional()
+  representantId?: string;
+
+  @IsEnum(NatureRepresentation)
+  @IsOptional()
+  natureRepresentation?: NatureRepresentation;
 
   @IsArray()
   @ValidateNested({ each: true })

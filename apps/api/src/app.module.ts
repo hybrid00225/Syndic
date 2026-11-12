@@ -10,6 +10,8 @@ import { TantiemesModule } from './tantiemes/tantiemes.module';
 import { AppelsModule } from './appels/appels.module';
 import { EncaissementsModule } from './encaissements/encaissements.module';
 import { RecouvrementModule } from './recouvrement/recouvrement.module';
+import { BudgetModule } from './budget/budget.module';
+import { DocumentsModule } from './documents/documents.module';
 
 @Module({
   imports: [
@@ -23,6 +25,8 @@ import { RecouvrementModule } from './recouvrement/recouvrement.module';
     AppelsModule,
     EncaissementsModule,
     RecouvrementModule,
+    BudgetModule,
+    DocumentsModule,
     // Les prochains modules métier seront ajoutés ici, un par un.
   ],
   controllers: [AppController],

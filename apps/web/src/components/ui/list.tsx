@@ -103,16 +103,20 @@ export function ListToolbar({
 }
 
 // ---------- Pagination client ----------
-export function usePaged<T>(items: T[], pageSize: number, resetKey: unknown) {
+export const PAGE_SIZES = [10, 25, 50] as const;
+
+export function usePaged<T>(items: T[], initialSize: number, resetKey: unknown) {
   const [page, setPage] = useState(1);
-  useEffect(() => setPage(1), [resetKey]);
+  const [pageSize, setPageSize] = useState(initialSize);
+  useEffect(() => setPage(1), [resetKey, pageSize]);
   const total = Math.max(1, Math.ceil(items.length / pageSize));
   const current = Math.min(page, total);
   const start = (current - 1) * pageSize;
   const pageItems = useMemo(() => items.slice(start, start + pageSize), [items, start, pageSize]);
-  return { page: current, setPage, total, start, pageItems, count: items.length, pageSize };
+  return { page: current, setPage, total, start, pageItems, count: items.length, pageSize, setPageSize };
 }
 
+/** Pagination toujours visible (s'intègre dans le pied de <Table footer>). */
 export function Pagination({
   page,
   total,
@@ -120,23 +124,68 @@ export function Pagination({
   count,
   pageSize,
   setPage,
+  setPageSize,
 }: ReturnType<typeof usePaged<unknown>>) {
-  if (count <= pageSize) return null;
+  if (count === 0) return null;
+  const btn =
+    'flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-35 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring';
+  // Numéros de page compacts : 1 … 4 5 6 … 12
+  const pages: (number | '…')[] = [];
+  for (let i = 1; i <= total; i++) {
+    if (i === 1 || i === total || Math.abs(i - page) <= 1) pages.push(i);
+    else if (pages[pages.length - 1] !== '…') pages.push('…');
+  }
   return (
-    <nav aria-label="Pagination" className="no-print flex items-center justify-between">
-      <span className="nums text-ui text-muted-foreground">
-        {start + 1}–{Math.min(start + pageSize, count)} sur {count}
-      </span>
-      <div className="flex items-center gap-1">
-        <Button variant="secondary" size="sm" disabled={page === 1} onClick={() => setPage(page - 1)}>
-          <ChevronLeft className="h-4 w-4" /> Précédent
-        </Button>
-        <span className="nums px-2 text-ui text-muted-foreground">
-          {page} / {total}
+    <nav aria-label="Pagination" className="no-print flex flex-wrap items-center justify-between gap-3 text-ui">
+      <div className="flex items-center gap-4 text-muted-foreground">
+        <span className="nums">
+          <span className="text-foreground">{start + 1}–{Math.min(start + pageSize, count)}</span> sur {count}
         </span>
-        <Button variant="secondary" size="sm" disabled={page === total} onClick={() => setPage(page + 1)}>
-          Suivant <ChevronRight className="h-4 w-4" />
-        </Button>
+        <label className="flex items-center gap-2">
+          Lignes par page
+          <span className="flex">
+            {PAGE_SIZES.map((n) => (
+              <button
+                key={n}
+                type="button"
+                onClick={() => setPageSize(n)}
+                aria-pressed={pageSize === n}
+                className={cn(
+                  'nums h-7 min-w-8 rounded-md px-1.5 transition-colors',
+                  pageSize === n ? 'bg-foreground text-background' : 'hover:bg-muted hover:text-foreground',
+                )}
+              >
+                {n}
+              </button>
+            ))}
+          </span>
+        </label>
+      </div>
+      <div className="flex items-center gap-0.5">
+        <button type="button" className={btn} disabled={page === 1} onClick={() => setPage(page - 1)} aria-label="Page précédente">
+          <ChevronLeft className="h-4 w-4" />
+        </button>
+        {pages.map((p, i) =>
+          p === '…' ? (
+            <span key={`e${i}`} className="px-1 text-muted-foreground">…</span>
+          ) : (
+            <button
+              key={p}
+              type="button"
+              onClick={() => setPage(p)}
+              aria-current={p === page ? 'page' : undefined}
+              className={cn(
+                'nums h-8 min-w-8 rounded-md px-2 transition-colors',
+                p === page ? 'bg-foreground font-medium text-background' : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+              )}
+            >
+              {p}
+            </button>
+          ),
+        )}
+        <button type="button" className={btn} disabled={page === total} onClick={() => setPage(page + 1)} aria-label="Page suivante">
+          <ChevronRight className="h-4 w-4" />
+        </button>
       </div>
     </nav>
   );
@@ -176,5 +225,9 @@ export function RowAction({
 }
 
 export function RowActions({ children }: { children: React.ReactNode }) {
-  return <div className="no-print flex items-center justify-end gap-0.5">{children}</div>;
+  return (
+    <div className="no-print flex items-center justify-end gap-0.5 opacity-60 transition-opacity group-hover/row:opacity-100 focus-within:opacity-100">
+      {children}
+    </div>
+  );
 }

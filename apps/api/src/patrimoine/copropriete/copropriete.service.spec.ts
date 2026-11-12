@@ -8,7 +8,31 @@ describe('CoproprieteService', () => {
   let service: CoproprieteService;
   let prisma: any;
 
+  // Client de transaction factice : chaque entité renvoie un id incrémental.
+  let tx: any;
+
   beforeEach(async () => {
+    let seq = 0;
+    const createReturningId = jest.fn(async (args: any) => ({
+      id: `id-${++seq}`,
+      superficie: args?.data?.superficie ?? null,
+    }));
+    tx = {
+      copropriete: {
+        create: jest.fn(async (args: any) => ({
+          id: 'copro-1',
+          modeRepartition: args.data.modeRepartition,
+        })),
+        findUnique: jest.fn(async () => ({ id: 'copro-1' })),
+      },
+      batiment: { create: createReturningId },
+      niveau: { create: createReturningId },
+      lot: { create: createReturningId },
+      cleRepartition: { create: jest.fn(async () => ({ id: 'cle-1' })) },
+      cleRepartitionVersion: { create: jest.fn(async () => ({ id: 'ver-1' })) },
+      tantieme: { createMany: jest.fn() },
+    };
+
     prisma = {
       copropriete: {
         create: jest.fn(),
@@ -16,6 +40,7 @@ describe('CoproprieteService', () => {
         findUnique: jest.fn(),
         update: jest.fn(),
       },
+      $transaction: jest.fn((cb: any) => cb(tx)),
     };
 
     const moduleRef = await Test.createTestingModule({
@@ -40,5 +65,65 @@ describe('CoproprieteService', () => {
         syndicId: SYNDIC,
       }),
     });
+  });
+
+  it('amorce une clé « Charges générales » avec des tantièmes = superficies', async () => {
+    await service.createComplete(
+      {
+        nom: 'Rés. Tantièmes',
+        pays: 'CI',
+        modeRepartition: 'TANTIEMES',
+        lots: [
+          { reference: 'A1', superficie: 80 },
+          { reference: 'A2', superficie: 40 },
+        ],
+      } as any,
+      SYNDIC,
+    );
+
+    expect(tx.cleRepartition.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ nom: 'Charges générales' }),
+      }),
+    );
+    // totalTantiemes = 80 + 40.
+    expect(tx.cleRepartitionVersion.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ totalTantiemes: 120 }),
+    });
+    const tantiemes = tx.tantieme.createMany.mock.calls[0][0].data;
+    expect(tantiemes.map((t: any) => t.valeur)).toEqual([80, 40]);
+  });
+
+  it('utilise des parts égales quand les lots sont sans superficie', async () => {
+    await service.createComplete(
+      {
+        nom: 'Rés. Égalité',
+        pays: 'CI',
+        modeRepartition: 'TANTIEMES',
+        lots: [{ reference: 'A1' }, { reference: 'A2' }, { reference: 'A3' }],
+      } as any,
+      SYNDIC,
+    );
+
+    expect(tx.cleRepartitionVersion.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ totalTantiemes: 3 }),
+    });
+    const tantiemes = tx.tantieme.createMany.mock.calls[0][0].data;
+    expect(tantiemes.map((t: any) => t.valeur)).toEqual([1, 1, 1]);
+  });
+
+  it("n'amorce aucune clé en mode MONTANT_FIXE", async () => {
+    await service.createComplete(
+      {
+        nom: 'Rés. Fixe',
+        pays: 'CI',
+        modeRepartition: 'MONTANT_FIXE',
+        lots: [{ reference: 'A1', superficie: 50 }],
+      } as any,
+      SYNDIC,
+    );
+
+    expect(tx.cleRepartition.create).not.toHaveBeenCalled();
+    expect(tx.cleRepartitionVersion.create).not.toHaveBeenCalled();
   });
 });

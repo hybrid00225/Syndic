@@ -120,6 +120,39 @@ export const NATURE_DROIT: [string, string][] = [
   ['NUE_PROPRIETE', 'Nue-propriété'],
 ];
 
+// Statut d'un copropriétaire (règles 3.11, 3.21, 3.22).
+export const PERSONNE_STATUTS: [string, string][] = [
+  ['ACTIF', 'Actif'],
+  ['SUSPENDU', 'Suspendu'],
+  ['DECEDE', 'Décédé'],
+  ['SUCCESSION', 'Succession'],
+];
+
+export const PERSONNE_STATUT_TONE: Record<
+  string,
+  'success' | 'warning' | 'danger' | 'neutral'
+> = {
+  ACTIF: 'success',
+  SUSPENDU: 'warning',
+  DECEDE: 'neutral',
+  SUCCESSION: 'warning',
+};
+
+// Mode de réception des notifications (règle 3.19).
+export const MODE_NOTIFICATIONS: [string, string][] = [
+  ['EMAIL', 'Email'],
+  ['SMS', 'SMS'],
+  ['COURRIER', 'Courrier'],
+  ['AUCUN', 'Aucun'],
+];
+
+// Nature d'une représentation (règles 3.5, 3.6, 3.12).
+export const NATURE_REPRESENTATION: [string, string][] = [
+  ['MANDATAIRE', 'Mandataire'],
+  ['TUTEUR', 'Tuteur'],
+  ['REPRESENTANT_LEGAL', 'Représentant légal'],
+];
+
 export const LABELS: Record<string, string> = {
   PHYSIQUE: 'Personne physique',
   MORALE: 'Personne morale',
@@ -151,4 +184,99 @@ export const LABELS: Record<string, string> = {
   EN_TRAVAUX: 'En travaux',
   INDISPONIBLE: 'Indisponible',
   VENDU: 'Vendu',
+  FUSIONNE: 'Fusionné',
+  SUBDIVISE: 'Subdivisé',
+  // Copropriétaires (domaine 3)
+  ACTIF: 'Actif',
+  SUSPENDU: 'Suspendu',
+  DECEDE: 'Décédé',
+  SUCCESSION: 'Succession',
+  SMS: 'SMS',
+  COURRIER: 'Courrier',
+  AUCUN: 'Aucun',
+  MANDATAIRE: 'Mandataire',
+  TUTEUR: 'Tuteur',
+  REPRESENTANT_LEGAL: 'Représentant légal',
+  // Parties communes (domaine 1.8)
+  GENERALE: 'Générale',
+  SPECIALE: 'Spéciale',
+  // Équipements — catégories (domaine 7)
+  ASCENSEUR: 'Ascenseur',
+  GROUPE_ELECTROGENE: 'Groupe électrogène',
+  POMPE: 'Pompe hydraulique',
+  SURPRESSEUR: 'Surpresseur',
+  RESERVOIR_EAU: "Réservoir d'eau",
+  PORTAIL: 'Portail automatique',
+  CAMERA: 'Caméra de surveillance',
+  SYSTEME_INCENDIE: 'Système incendie',
+  PISCINE: 'Piscine',
+  CLIMATISATION: 'Climatisation collective',
+  INSTALLATION_ELECTRIQUE: 'Installation électrique',
+  ECLAIRAGE: 'Éclairage commun',
+  CONTROLE_ACCES: "Contrôle d'accès",
+  // Équipements — états (domaine 7)
+  EN_SERVICE: 'En service',
+  EN_PANNE: 'En panne',
+  EN_MAINTENANCE: 'En maintenance',
+  HORS_SERVICE: 'Hors service',
+  REMPLACE: 'Remplacé',
+  // Accès (domaine 1.9)
+  PIETON: 'Piéton',
+  VEHICULE: 'Véhicule',
+  LIVRAISON: 'Livraison',
+  SECOURS: 'Secours',
+};
+
+// Domaine 1.9 : types d'accès d'une copropriété.
+export const ACCES_TYPES: [string, string][] = [
+  ['PIETON', 'Piéton'],
+  ['VEHICULE', 'Véhicule'],
+  ['PARKING', 'Parking'],
+  ['LIVRAISON', 'Livraison'],
+  ['SECOURS', 'Secours'],
+  ['AUTRE', 'Autre'],
+];
+
+// Règle 1.8 : parties communes générales ou spéciales.
+export const PARTIE_COMMUNE_TYPES: [string, string][] = [
+  ['GENERALE', 'Générale'],
+  ['SPECIALE', 'Spéciale'],
+];
+
+// Domaine 7 : catégories d'équipements (exemples de l'analyse).
+export const EQUIPEMENT_CATEGORIES: [string, string][] = [
+  ['ASCENSEUR', 'Ascenseur'],
+  ['GROUPE_ELECTROGENE', 'Groupe électrogène'],
+  ['POMPE', 'Pompe hydraulique'],
+  ['SURPRESSEUR', 'Surpresseur'],
+  ['RESERVOIR_EAU', "Réservoir d'eau"],
+  ['PORTAIL', 'Portail automatique'],
+  ['CAMERA', 'Caméra de surveillance'],
+  ['SYSTEME_INCENDIE', 'Système incendie'],
+  ['PISCINE', 'Piscine'],
+  ['CLIMATISATION', 'Climatisation collective'],
+  ['INSTALLATION_ELECTRIQUE', 'Installation électrique'],
+  ['ECLAIRAGE', 'Éclairage commun'],
+  ['CONTROLE_ACCES', "Contrôle d'accès"],
+  ['AUTRE', 'Autre'],
+];
+
+// Domaine 7 : cycle de vie d'un équipement.
+export const EQUIPEMENT_ETATS: [string, string][] = [
+  ['EN_SERVICE', 'En service'],
+  ['EN_PANNE', 'En panne'],
+  ['EN_MAINTENANCE', 'En maintenance'],
+  ['HORS_SERVICE', 'Hors service'],
+  ['REMPLACE', 'Remplacé'],
+];
+
+export const EQUIPEMENT_ETAT_TONE: Record<
+  string,
+  'success' | 'warning' | 'danger' | 'neutral'
+> = {
+  EN_SERVICE: 'success',
+  EN_PANNE: 'danger',
+  EN_MAINTENANCE: 'warning',
+  HORS_SERVICE: 'neutral',
+  REMPLACE: 'neutral',
 };

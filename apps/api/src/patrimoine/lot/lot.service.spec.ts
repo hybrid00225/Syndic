@@ -15,9 +15,16 @@ describe('LotService (règles de gestion)', () => {
 
   beforeEach(async () => {
     prisma = {
-      lot: { create: jest.fn() },
+      lot: {
+        create: jest.fn(),
+        findUnique: jest.fn(),
+        findMany: jest.fn(),
+        update: jest.fn(),
+        updateMany: jest.fn(),
+      },
       batiment: { findUnique: jest.fn() },
       niveau: { findUnique: jest.fn() },
+      $transaction: jest.fn(async (fn: any) => fn(prisma)),
     };
     coproprietes = { ensureExists: jest.fn().mockResolvedValue(undefined) };
 
@@ -122,5 +129,90 @@ describe('LotService (règles de gestion)', () => {
     } as any);
 
     expect(res).toBe(created);
+  });
+
+  // --- Opérations sur lots (domaine 2.11 à 2.15) ---------------------------
+
+  it('fusion : marque les lots sources comme FUSIONNE et crée le nouveau lot', async () => {
+    prisma.lot.findMany.mockResolvedValue([
+      { id: 'l1', statut: 'VACANT', superficie: 50 },
+      { id: 'l2', statut: 'VACANT', superficie: 30 },
+    ]);
+    prisma.lot.create.mockResolvedValue({ id: 'new', reference: 'A1-2' });
+    prisma.lot.findUnique.mockResolvedValue({ id: 'new', reference: 'A1-2' });
+
+    await service.fusionner(COPRO, {
+      sourceLotIds: ['l1', 'l2'],
+      nouveau: { reference: 'A1-2', type: 'APPARTEMENT' },
+    } as any);
+
+    // Superficie du nouveau lot = somme des sources (50 + 30).
+    expect(prisma.lot.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ reference: 'A1-2', superficie: 80 }),
+    });
+    expect(prisma.lot.updateMany).toHaveBeenCalledWith({
+      where: { id: { in: ['l1', 'l2'] } },
+      data: { statut: 'FUSIONNE' },
+    });
+  });
+
+  it('fusion : refuse un lot source déjà terminal (409)', async () => {
+    prisma.lot.findMany.mockResolvedValue([
+      { id: 'l1', statut: 'VACANT', superficie: 50 },
+      { id: 'l2', statut: 'FUSIONNE', superficie: 30 },
+    ]);
+    await expect(
+      service.fusionner(COPRO, {
+        sourceLotIds: ['l1', 'l2'],
+        nouveau: { reference: 'X', type: 'AUTRE' },
+      } as any),
+    ).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it('subdivision : marque la source SUBDIVISE et crée les lots issus (lignée)', async () => {
+    prisma.lot.findUnique.mockResolvedValue({
+      id: 'src',
+      coproprieteId: COPRO,
+      statut: 'VACANT',
+      batiment: null,
+      niveau: null,
+    });
+    prisma.lot.create.mockResolvedValue({ id: 'child' });
+
+    await service.subdiviser('src', {
+      nouveaux: [
+        { reference: 'A1a', type: 'APPARTEMENT' },
+        { reference: 'A1b', type: 'APPARTEMENT' },
+      ],
+    } as any);
+
+    // Chaque nouveau lot porte sa lignée (origineLotId = source).
+    expect(prisma.lot.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ origineLotId: 'src' }),
+    });
+    expect(prisma.lot.update).toHaveBeenCalledWith({
+      where: { id: 'src' },
+      data: { statut: 'SUBDIVISE' },
+    });
+  });
+
+  it("annexe : refuse un lot principal d'une autre copropriété (400)", async () => {
+    prisma.lot.findUnique
+      .mockResolvedValueOnce({
+        id: 'lot',
+        coproprieteId: COPRO,
+        statut: 'VACANT',
+        batiment: null,
+        niveau: null,
+      }) // findOne(lot)
+      .mockResolvedValueOnce({
+        id: 'princ',
+        coproprieteId: AUTRE_COPRO,
+        statut: 'VACANT',
+        lotPrincipalId: null,
+      }); // principal
+    await expect(
+      service.annexer('lot', { lotPrincipalId: 'princ' } as any),
+    ).rejects.toBeInstanceOf(BadRequestException);
   });
 });

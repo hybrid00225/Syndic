@@ -1,228 +1,260 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import {
-  Building2,
-  Layers,
-  Home,
-  Landmark,
-  Search,
-  Eye,
-  Pencil,
-  Trash2,
-  Printer,
-  Download,
-  RotateCcw,
-} from 'lucide-react';
+import { Eye, Pencil, Trash2, Printer, Download } from 'lucide-react';
 import { api } from '@/lib/api';
-import { Card } from '@/components/ui/card';
+import { useApi, useInvalidate } from '@/lib/query';
+import type { Batiment, CoproRef } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { StatTile } from '@/components/ui/stat-tile';
+import { Ledger, Stat, Composition } from '@/components/ui/stat';
 import { SearchSelect } from '@/components/ui/select';
 import { Tooltip } from '@/components/ui/tooltip';
-import { useConfirm } from '@/components/ui/confirm';
+import { useAlert, useConfirm } from '@/components/ui/confirm';
 import { PageLoader } from '@/components/ui/spinner';
+import { EmptyState, ErrorState } from '@/components/ui/states';
+import { Table, THead, Th, Td, Tr } from '@/components/ui/table';
+import { ListToolbar, Pagination, RowAction, RowActions, SearchInput, usePaged } from '@/components/ui/list';
 import { PageHeader } from '@/components/page-header';
+import { exportCsv } from '@/lib/csv';
+import { cn } from '@/lib/utils';
 
-interface Batiment {
-  id: string;
-  nom: string;
-  coproprieteId: string;
-  copropriete: { id: string; nom: string };
-  _count: { niveaux: number; lots: number };
-}
-interface Copro {
-  id: string;
-  nom: string;
-}
+const moyenne = (total: number, n: number) =>
+  n ? (total / n).toLocaleString('fr-FR', { maximumFractionDigits: 1 }) : '0';
 
 export default function BatimentsPage() {
   const confirm = useConfirm();
-  const [batiments, setBatiments] = useState<Batiment[] | null>(null);
-  const [copros, setCopros] = useState<Copro[]>([]);
+  const alert = useAlert();
+  const invalidate = useInvalidate();
+  const { data: batiments, error, isLoading, refetch } = useApi<Batiment[]>('/batiments');
+  const { data: copros = [] } = useApi<CoproRef[]>('/coproprietes');
   const [q, setQ] = useState('');
   const [copro, setCopro] = useState('');
-
-  const charger = () =>
-    api<Batiment[]>('/batiments').then(setBatiments).catch(() => setBatiments([]));
-  useEffect(() => {
-    charger();
-    api<Copro[]>('/coproprietes').then(setCopros).catch(() => setCopros([]));
-  }, []);
+  const [sansLot, setSansLot] = useState(false);
 
   const filtered = useMemo(() => {
     if (!batiments) return [];
     const n = q.trim().toLowerCase();
-    return batiments.filter(
-      (b) =>
-        (!n || b.nom.toLowerCase().includes(n)) &&
-        (!copro || b.coproprieteId === copro),
-    );
-  }, [batiments, q, copro]);
+    return batiments
+      .filter(
+        (b) =>
+          (!n || b.nom.toLowerCase().includes(n) || b.copropriete.nom.toLowerCase().includes(n)) &&
+          (!copro || b.coproprieteId === copro) &&
+          (!sansLot || b._count.lots === 0),
+      )
+      .sort((a, b) => a.copropriete.nom.localeCompare(b.copropriete.nom, 'fr') || a.nom.localeCompare(b.nom, 'fr'));
+  }, [batiments, q, copro, sansLot]);
 
-  if (!batiments) return <PageLoader />;
+  const paged = usePaged(filtered, 10, `${q}|${copro}|${sansLot}`);
+
+  if (isLoading) return <PageLoader label="Chargement des bâtiments…" />;
+
+  const header = (
+    <PageHeader
+      crumbs={[{ label: 'Espace', href: '/dashboard' }, { label: 'Bâtiments' }]}
+      title="Bâtiments"
+      subtitle="Tous les bâtiments de votre portefeuille. Ils se créent depuis la fiche de leur copropriété."
+      actions={
+        batiments && batiments.length > 0 ? (
+          <>
+            <Tooltip label="Imprimer la liste filtrée" side="bottom">
+              <Button variant="secondary" onClick={() => window.print()}>
+                <Printer className="h-4 w-4" /> Imprimer
+              </Button>
+            </Tooltip>
+            <Tooltip label="Télécharger la liste filtrée (CSV, Excel)" side="bottom">
+              <Button variant="secondary" onClick={() => exporter()}>
+                <Download className="h-4 w-4" /> Exporter
+              </Button>
+            </Tooltip>
+          </>
+        ) : undefined
+      }
+    />
+  );
+
+  if (error || !batiments) {
+    return (
+      <div className="space-y-6">
+        {header}
+        <ErrorState error={error} onRetry={() => refetch()} />
+      </div>
+    );
+  }
+
+  if (batiments.length === 0) {
+    return (
+      <div className="space-y-6">
+        {header}
+        <EmptyState
+          title="Aucun bâtiment déclaré"
+          steps={['Ouvrir une copropriété', 'Onglet Patrimoine : ajouter un bâtiment', 'Déclarer ses niveaux puis ses lots']}
+          actions={
+            <Button asChild>
+              <Link href="/coproprietes">Aller aux copropriétés</Link>
+            </Button>
+          }
+        >
+          Un bâtiment appartient à une copropriété et se découpe en niveaux (étages, sous-sols) qui
+          accueillent les lots.
+        </EmptyState>
+      </div>
+    );
+  }
 
   const sumNiv = batiments.reduce((s, b) => s + b._count.niveaux, 0);
   const sumLots = batiments.reduce((s, b) => s + b._count.lots, 0);
-  const hasFilters = q || copro;
+  const nbSansLot = batiments.filter((b) => b._count.lots === 0).length;
+  const hasFilters = !!(q || copro || sansLot);
 
-  const exporter = () => {
-    const header = ['Bâtiment', 'Copropriété', 'Niveaux', 'Lots'];
-    const rows = filtered.map((b) => [b.nom, b.copropriete.nom, b._count.niveaux, b._count.lots]);
-    const csv = [header, ...rows]
-      .map((r) => r.map((f) => `"${String(f).replace(/"/g, '""')}"`).join(';'))
-      .join('\n');
-    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'batiments.csv';
-    a.click();
-    URL.revokeObjectURL(url);
+  const reset = () => {
+    setQ('');
+    setCopro('');
+    setSansLot(false);
   };
+
+  function exporter() {
+    exportCsv(
+      'batiments.csv',
+      ['Bâtiment', 'Copropriété', 'Niveaux', 'Lots'],
+      filtered.map((b) => [b.nom, b.copropriete.nom, b._count.niveaux, b._count.lots]),
+    );
+  }
 
   const supprimer = async (b: Batiment) => {
     const ok = await confirm({
       title: `Supprimer « ${b.nom} » ?`,
-      description: `Bâtiment de « ${b.copropriete.nom} ». Suppression définitive.`,
-      nextAction: "Impossible s'il contient des niveaux ou des lots.",
+      description: `Bâtiment de « ${b.copropriete.nom} ». La suppression est définitive.`,
+      nextAction: "Impossible s'il contient des niveaux ou des lots : supprimez-les d'abord.",
       confirmLabel: 'Supprimer',
       tone: 'danger',
     });
     if (!ok) return;
     try {
       await api(`/batiments/${b.id}`, { method: 'DELETE' });
-      charger();
+      invalidate('/batiments', '/coproprietes');
     } catch (e) {
-      await confirm({
-        title: 'Suppression impossible',
-        description: e instanceof Error ? e.message : 'Erreur',
-        confirmLabel: 'Compris',
-        tone: 'warning',
-      });
+      alert('Suppression impossible', e instanceof Error ? e.message : 'Erreur inconnue.');
     }
   };
 
+  const fiche = (b: Batiment) => `/coproprietes/${b.coproprieteId}?tab=batiments`;
+
   return (
-    <div className="animate-fade-up space-y-6">
-      <PageHeader
-        crumbs={[{ label: 'Espace', href: '/dashboard' }, { label: 'Bâtiments' }]}
-        title="Bâtiments"
-        subtitle={`${batiments.length} bâtiment${batiments.length > 1 ? 's' : ''} sur l'ensemble du portefeuille.`}
-        actions={
-          <>
-            <Tooltip label="Imprimer" side="bottom">
-              <Button variant="secondary" size="sm" onClick={() => window.print()}>
-                <Printer className="h-4 w-4" /> Imprimer
-              </Button>
-            </Tooltip>
-            <Tooltip label="Exporter en CSV" side="bottom">
-              <Button variant="secondary" size="sm" onClick={exporter}>
-                <Download className="h-4 w-4" /> Exporter
-              </Button>
-            </Tooltip>
-          </>
-        }
-      />
+    <div className="space-y-6">
+      {header}
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <StatTile label="Bâtiments" value={batiments.length} icon={Building2} filled />
-        <StatTile label="Niveaux" value={sumNiv} icon={Layers} tone="info" />
-        <StatTile label="Lots" value={sumLots} icon={Home} tone="success" />
-        <StatTile label="Copropriétés" value={new Set(batiments.map((b) => b.coproprieteId)).size} icon={Landmark} tone="warning" />
-      </div>
-
-      <Card className="p-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="relative min-w-[200px] flex-1">
-            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="Rechercher un bâtiment…"
-              className="h-9 w-full rounded-lg border border-border bg-background pl-8 pr-3 text-sm placeholder:text-muted-foreground/70 focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/25"
+      <Ledger>
+        <Stat
+          lead
+          label="Bâtiments"
+          value={batiments.length}
+          info="Tous les bâtiments de vos copropriétés. Cliquez pour retirer le filtre rapide."
+          onClick={() => setSansLot(false)}
+          active={!sansLot}
+          viz={
+            <Composition
+              segments={[
+                { label: 'Avec lots', value: batiments.length - nbSansLot, tone: 'ink' },
+                { label: 'Sans lot', value: nbSansLot, tone: 'warn' },
+              ]}
             />
-          </div>
-          <SearchSelect className="w-56" value={copro} onChange={setCopro} options={copros.map((c) => [c.id, c.nom] as const)} allowEmpty emptyLabel="Toutes les copropriétés" />
-          {hasFilters && (
-            <Tooltip label="Réinitialiser" side="bottom">
-              <button onClick={() => { setQ(''); setCopro(''); }} className="flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground">
-                <RotateCcw className="h-4 w-4" /> Réinitialiser
-              </button>
-            </Tooltip>
-          )}
-          <span className="ml-auto text-sm text-muted-foreground">
-            {filtered.length} résultat{filtered.length > 1 ? 's' : ''}
-          </span>
-        </div>
-      </Card>
+          }
+        />
+        <Stat
+          label="Niveaux"
+          value={sumNiv}
+          info="Étages et sous-sols déclarés, tous bâtiments confondus."
+          note={`${moyenne(sumNiv, batiments.length)} par bâtiment en moyenne`}
+        />
+        <Stat
+          label="Lots"
+          value={sumLots}
+          info="Lots rattachés à un bâtiment."
+          note={`${moyenne(sumLots, batiments.length)} par bâtiment en moyenne`}
+        />
+        <Stat
+          label="Sans lot"
+          value={nbSansLot}
+          tone={nbSansLot > 0 ? 'warning' : 'default'}
+          info="Bâtiments sans aucun lot déclaré. Cliquez pour filtrer."
+          onClick={() => setSansLot((v) => !v)}
+          active={sansLot}
+          note={nbSansLot > 0 ? 'patrimoine à compléter' : 'tous les bâtiments ont des lots'}
+        />
+      </Ledger>
 
-      {filtered.length === 0 ? (
-        <Card className="flex flex-col items-center py-16 text-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
-            <Building2 className="h-6 w-6" />
-          </div>
-          <p className="mt-3 font-medium">Aucun bâtiment</p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Ajoutez des bâtiments depuis une copropriété.
-          </p>
-        </Card>
-      ) : (
-        <div className="overflow-x-auto rounded-xl border border-border">
-          <table className="w-full border-collapse text-sm">
-            <thead>
-              <tr className="bg-muted text-left text-xs uppercase tracking-wider text-muted-foreground">
-                <th className="border border-border px-4 py-3 font-semibold">Bâtiment</th>
-                <th className="border border-border px-4 py-3 font-semibold">Copropriété</th>
-                <th className="border border-border px-4 py-3 font-semibold">Niveaux</th>
-                <th className="border border-border px-4 py-3 font-semibold">Lots</th>
-                <th className="border border-border px-4 py-3 text-right font-semibold">Actions</th>
-              </tr>
-            </thead>
+      <div className="space-y-4">
+        <ListToolbar
+          search={<SearchInput value={q} onChange={setQ} placeholder="Bâtiment ou copropriété…" />}
+          hasFilters={hasFilters}
+          onReset={reset}
+          count={filtered.length}
+        >
+          <SearchSelect
+            size="sm"
+            className="w-56"
+            value={copro}
+            onChange={setCopro}
+            options={copros.map((c) => [c.id, c.nom] as const)}
+            allowEmpty
+            emptyLabel="Toutes les copropriétés"
+            aria-label="Filtrer par copropriété"
+          />
+        </ListToolbar>
+
+        {filtered.length === 0 ? (
+          <EmptyState
+            title="Aucun résultat"
+            actions={
+              <Button variant="secondary" onClick={reset}>
+                Réinitialiser les filtres
+              </Button>
+            }
+          >
+            Aucun bâtiment ne correspond à ces critères.
+          </EmptyState>
+        ) : (
+          <Table footer={<Pagination {...paged} />}>
+            <THead>
+              <Th>Bâtiment</Th>
+              <Th>Copropriété</Th>
+              <Th numeric>Niveaux</Th>
+              <Th numeric>Lots</Th>
+              <Th className="no-print w-[1%]">
+                <span className="sr-only">Actions</span>
+              </Th>
+            </THead>
             <tbody>
-              {filtered.map((b) => (
-                <tr key={b.id} className="bg-card transition-colors hover:bg-muted/50">
-                  <td className="border border-border px-4 py-3">
-                    <span className="flex items-center gap-2.5 font-medium">
-                      <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                        <Building2 className="h-4 w-4" />
-                      </span>
+              {paged.pageItems.map((b) => (
+                <Tr key={b.id} href={fiche(b)}>
+                  <Td>
+                    <Link href={fiche(b)} className="font-medium underline-offset-4 hover:underline">
                       {b.nom}
-                    </span>
-                  </td>
-                  <td className="border border-border px-4 py-3">
-                    <Link href={`/coproprietes/${b.coproprieteId}`} className="text-primary hover:underline">
+                    </Link>
+                  </Td>
+                  <Td>
+                    <Link href={`/coproprietes/${b.coproprieteId}`} className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
                       {b.copropriete.nom}
                     </Link>
-                  </td>
-                  <td className="border border-border px-4 py-3 nums">{b._count.niveaux}</td>
-                  <td className="border border-border px-4 py-3 nums">{b._count.lots}</td>
-                  <td className="border border-border px-4 py-3">
-                    <div className="flex items-center justify-end gap-1">
-                      <Tooltip label="Voir dans la copropriété">
-                        <Link href={`/coproprietes/${b.coproprieteId}?tab=patrimoine`} className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground">
-                          <Eye className="h-4 w-4" />
-                        </Link>
-                      </Tooltip>
-                      <Tooltip label="Gérer / renommer">
-                        <Link href={`/coproprietes/${b.coproprieteId}?tab=patrimoine`} className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground">
-                          <Pencil className="h-4 w-4" />
-                        </Link>
-                      </Tooltip>
-                      <Tooltip label="Supprimer">
-                        <button onClick={() => supprimer(b)} className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-danger/10 hover:text-danger">
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </Tooltip>
-                    </div>
-                  </td>
-                </tr>
+                  </Td>
+                  <Td numeric>{b._count.niveaux}</Td>
+                  <Td numeric className={cn(b._count.lots === 0 && 'text-warning')}>
+                    {b._count.lots}
+                  </Td>
+                  <Td>
+                    <RowActions>
+                      <RowAction label="Voir dans la copropriété" icon={Eye} href={fiche(b)} />
+                      <RowAction label="Gérer niveaux et lots" icon={Pencil} href={fiche(b)} />
+                      <RowAction label="Supprimer" icon={Trash2} danger onClick={() => supprimer(b)} />
+                    </RowActions>
+                  </Td>
+                </Tr>
               ))}
             </tbody>
-          </table>
-        </div>
-      )}
+          </Table>
+        )}
+      </div>
     </div>
   );
 }

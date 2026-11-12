@@ -24,12 +24,45 @@ export class PersonneService {
         type: dto.type,
         nom: dto.nom,
         prenom: dto.prenom,
+        statut: dto.statut,
+        modeNotification: dto.modeNotification,
+        representantId: dto.representantId,
+        natureRepresentation: dto.natureRepresentation,
         contacts: dto.contacts?.length
           ? { create: dto.contacts.map((c) => ({ ...c })) }
           : undefined,
       },
       include: { contacts: true },
     });
+  }
+
+  // Règle 3 : les copropriétaires d'UNE copropriété = les personnes détenant au
+  // moins un lot de cette copropriété. On renvoie leurs détentions dans cette
+  // copropriété (lot, quote-part, nature, dates), en cours par défaut.
+  async coproprietairesDeCopropriete(
+    coproprieteId: string,
+    inclureHistorique = false,
+  ) {
+    const detentionWhere = {
+      lot: { coproprieteId },
+      ...(inclureHistorique ? {} : { dateFin: null }),
+    };
+    const personnes = await this.prisma.personne.findMany({
+      where: { detentions: { some: detentionWhere } },
+      include: {
+        contacts: true,
+        representant: { select: { id: true, nom: true, prenom: true, type: true } },
+        detentions: {
+          where: detentionWhere,
+          include: {
+            lot: { select: { id: true, reference: true, type: true } },
+          },
+          orderBy: { dateDebut: 'desc' },
+        },
+      },
+      orderBy: { nom: 'asc' },
+    });
+    return personnes;
   }
 
   findAll(syndicId?: string) {
@@ -48,6 +81,10 @@ export class PersonneService {
       where: { id },
       include: {
         contacts: true,
+        representant: {
+          select: { id: true, nom: true, prenom: true, type: true },
+        },
+        represente: { select: { id: true, nom: true, prenom: true, type: true } },
         detentions: {
           include: {
             lot: {

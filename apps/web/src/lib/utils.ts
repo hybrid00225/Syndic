@@ -1,5 +1,12 @@
 import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+import { extendTailwindMerge } from 'tailwind-merge';
+
+// Déclare les tailles de texte du design system (text-2xs, text-ui) :
+// sans ça, tailwind-merge les prend pour des couleurs et supprime
+// la vraie couleur du texte (ex. text-primary-foreground sur les boutons).
+const twMerge = extendTailwindMerge({
+  extend: { classGroups: { 'font-size': [{ text: ['2xs', 'ui'] }] } },
+});
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));

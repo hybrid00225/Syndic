@@ -22,6 +22,10 @@ import { SearchSelect } from '@/components/ui/select';
 import { Tooltip } from '@/components/ui/tooltip';
 import { useConfirm } from '@/components/ui/confirm';
 import { Spinner } from '@/components/ui/spinner';
+import { Table, THead, Th, Td, Tr } from '@/components/ui/table';
+import { ListToolbar, Pagination, RowAction, RowActions, SearchInput, usePaged } from '@/components/ui/list';
+import { EmptyState } from '@/components/ui/states';
+import { cn } from '@/lib/utils';
 import { LOT_TYPES, LOT_STATUTS, LOT_STATUT_TONE, LABELS } from '@/lib/constants';
 
 interface Batiment {
@@ -44,7 +48,40 @@ interface Lot {
   niveauId: string | null;
 }
 
-export function BatimentsLots({ coproprieteId }: { coproprieteId: string }) {
+// Couleur des cases-lots dans l'élévation (par statut d'occupation).
+const CELL: Record<string, string> = {
+  OCCUPE_PROPRIETAIRE: 'border-primary bg-primary text-primary-foreground',
+  LOUE: 'border-primary/50 bg-primary/30 text-foreground',
+  VACANT: 'border-input bg-background text-foreground',
+  EN_TRAVAUX: 'border-warning bg-warning/60 text-foreground',
+  INDISPONIBLE: 'border-warning text-foreground bg-[repeating-linear-gradient(45deg,hsl(var(--warning)/0.35)_0_3px,transparent_3px_7px)]',
+  VENDU: 'border-border bg-muted text-muted-foreground line-through',
+};
+const LEGENDE: [string, string][] = [
+  ['OCCUPE_PROPRIETAIRE', 'Occupé par le propriétaire'],
+  ['LOUE', 'Loué'],
+  ['VACANT', 'Vacant'],
+  ['EN_TRAVAUX', 'En travaux'],
+  ['INDISPONIBLE', 'Indisponible'],
+  ['VENDU', 'Vendu'],
+];
+
+export type PatrimoineView = 'batiments' | 'lots';
+
+/**
+ * Patrimoine d'une copropriété : rendu en deux onglets (bâtiments / lots)
+ * qui partagent données, filtres et fenêtres. Garder une seule instance montée
+ * pour que le filtre posé depuis un étage suive vers l'onglet Lots.
+ */
+export function BatimentsLots({
+  coproprieteId,
+  view,
+  onViewChange,
+}: {
+  coproprieteId: string;
+  view: PatrimoineView;
+  onViewChange: (v: PatrimoineView) => void;
+}) {
   const confirm = useConfirm();
   const [batiments, setBatiments] = useState<Batiment[]>([]);
   const [niveaux, setNiveaux] = useState<Record<string, Niveau[]>>({});
@@ -58,6 +95,8 @@ export function BatimentsLots({ coproprieteId }: { coproprieteId: string }) {
   const [fType, setFType] = useState('');
   const [fStatut, setFStatut] = useState('');
   const [fBat, setFBat] = useState('');
+  const [fNiv, setFNiv] = useState('');
+  const [q, setQ] = useState('');
 
   const chargerBatiments = async () => {
     const bs = await api<Batiment[]>(`/coproprietes/${coproprieteId}/batiments`);
@@ -82,16 +121,43 @@ export function BatimentsLots({ coproprieteId }: { coproprieteId: string }) {
   const batNom = (id: string | null) =>
     id ? batiments.find((b) => b.id === id)?.nom ?? '—' : '—';
 
-  const lotsFiltres = useMemo(
-    () =>
-      lots.filter(
+  const lotsFiltres = useMemo(() => {
+    const n = q.trim().toLowerCase();
+    return lots
+      .filter(
         (l) =>
+          (!n || l.reference.toLowerCase().includes(n) || (l.designation ?? '').toLowerCase().includes(n)) &&
           (!fType || l.type === fType) &&
           (!fStatut || l.statut === fStatut) &&
-          (!fBat || l.batimentId === fBat),
-      ),
-    [lots, fType, fStatut, fBat],
-  );
+          (!fBat || l.batimentId === fBat) &&
+          (!fNiv || (fNiv === '__none' ? !l.niveauId : l.niveauId === fNiv)),
+      )
+      .sort((a, b) => a.reference.localeCompare(b.reference, 'fr', { numeric: true }));
+  }, [lots, q, fType, fStatut, fBat, fNiv]);
+  const pagedLots = usePaged(lotsFiltres, 10, `${q}|${fType}|${fStatut}|${fBat}|${fNiv}`);
+
+  const nivNom = (id: string | null) => {
+    if (!id) return null;
+    for (const list of Object.values(niveaux)) {
+      const n = list.find((x) => x.id === id);
+      if (n) return n.nom;
+    }
+    return null;
+  };
+  const filtrerEtage = (batimentId: string, niveauId: string) => {
+    const same = fBat === batimentId && fNiv === niveauId;
+    setFBat(same ? '' : batimentId);
+    setFNiv(same ? '' : niveauId);
+    if (!same) onViewChange('lots');
+  };
+  const hasLotFilters = !!(q || fType || fStatut || fBat || fNiv);
+  const resetLots = () => {
+    setQ('');
+    setFType('');
+    setFStatut('');
+    setFBat('');
+    setFNiv('');
+  };
 
   const supprimerBatiment = async (b: Batiment) => {
     const ok = await confirm({
@@ -163,131 +229,248 @@ export function BatimentsLots({ coproprieteId }: { coproprieteId: string }) {
 
   return (
     <div className="space-y-6">
-      {/* ---- Bâtiments ---- */}
-      <Card className="p-5">
-        <div className="flex items-center justify-between">
+      {/* ---- Bâtiments : élévations ---- */}
+      {view === 'batiments' && (
+      <section className="space-y-4">
+        <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h2 className="text-sm font-semibold">Bâtiments & niveaux</h2>
-            <p className="text-xs text-muted-foreground">
-              {batiments.length} bâtiment{batiments.length > 1 ? 's' : ''}
+            <h2 className="font-display text-xl font-medium">Bâtiments</h2>
+            <p className="text-ui text-muted-foreground">
+              Chaque case est un lot, placé à son étage. Cliquez un étage pour voir ses lots.
             </p>
           </div>
-          <Button size="sm" onClick={() => setModal({ kind: 'batiment' })}>
+          <Button variant="secondary" onClick={() => setModal({ kind: 'batiment' })}>
             <Plus className="h-4 w-4" /> Ajouter un bâtiment
           </Button>
         </div>
 
         {batiments.length === 0 ? (
-          <Empty icon={Building2} title="Aucun bâtiment" desc="Ajoutez un premier bâtiment." />
+          <EmptyState
+            title="Aucun bâtiment"
+            steps={['Ajouter un bâtiment', 'Déclarer ses niveaux (RDC, R+1…)', 'Créer les lots à chaque niveau']}
+            actions={
+              <Button onClick={() => setModal({ kind: 'batiment' })}>
+                <Plus className="h-4 w-4" /> Ajouter un bâtiment
+              </Button>
+            }
+          >
+            Les bâtiments structurent la copropriété : chacun se découpe en niveaux qui accueillent les lots.
+          </EmptyState>
         ) : (
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            {batiments.map((b) => (
-              <div key={b.id} className="rounded-lg border border-border p-3.5">
-                <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-2 font-medium">
-                    <Building2 className="h-4 w-4 text-primary" /> {b.nom}
-                  </span>
-                  <div className="flex items-center gap-0.5">
-                    <Tooltip label="Ajouter un niveau">
-                      <button
-                        onClick={() => setModal({ kind: 'niveau', batimentId: b.id })}
-                        className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
-                      >
-                        <Plus className="h-4 w-4" />
-                      </button>
-                    </Tooltip>
-                    <Tooltip label="Renommer">
-                      <button
-                        onClick={() => setModal({ kind: 'batiment', batiment: b })}
-                        className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </button>
-                    </Tooltip>
-                    <Tooltip label="Supprimer">
-                      <button
-                        onClick={() => supprimerBatiment(b)}
-                        className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-danger/10 hover:text-danger"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </Tooltip>
+          <div className="grid gap-4 lg:grid-cols-2">
+            {batiments.map((b) => {
+              const nivs = [...(niveaux[b.id] ?? [])].sort((x, y) => y.ordre - x.ordre);
+              const lotsBat = lots.filter((l) => l.batimentId === b.id);
+              const sansNiveau = lotsBat.filter((l) => !l.niveauId);
+              const occ = lotsBat.filter((l) => l.statut === 'OCCUPE_PROPRIETAIRE' || l.statut === 'LOUE').length;
+              const etages: { id: string; nom: string; lots: Lot[]; niveau?: Niveau }[] = [
+                ...nivs.map((n) => ({ id: n.id, nom: n.nom, niveau: n, lots: lotsBat.filter((l) => l.niveauId === n.id) })),
+                ...(sansNiveau.length ? [{ id: '__none', nom: '—', lots: sansNiveau }] : []),
+              ];
+              return (
+                <Card key={b.id} className="flex flex-col">
+                  <div className="flex items-start justify-between gap-3 px-5 pt-4">
+                    <div className="min-w-0">
+                      <h3 className="font-display text-lg font-medium leading-tight">{b.nom}</h3>
+                      <p className="nums mt-0.5 text-2xs text-muted-foreground">
+                        {nivs.length} niveau{nivs.length > 1 ? 'x' : ''} · {lotsBat.length} lot{lotsBat.length > 1 ? 's' : ''}
+                        {lotsBat.length > 0 && ` · ${Math.round((occ / lotsBat.length) * 100)} % occupés`}
+                      </p>
+                    </div>
+                    <RowActions>
+                      <RowAction label="Ajouter un niveau" icon={Plus} onClick={() => setModal({ kind: 'niveau', batimentId: b.id })} />
+                      <RowAction label="Renommer le bâtiment" icon={Pencil} onClick={() => setModal({ kind: 'batiment', batiment: b })} />
+                      <RowAction label="Supprimer le bâtiment" icon={Trash2} danger onClick={() => supprimerBatiment(b)} />
+                    </RowActions>
                   </div>
-                </div>
-                <div className="mt-2.5 flex flex-wrap gap-1.5">
-                  {(niveaux[b.id] ?? []).length === 0 ? (
-                    <span className="text-xs text-muted-foreground">Aucun niveau</span>
-                  ) : (
-                    (niveaux[b.id] ?? []).map((n) => (
-                      <span
-                        key={n.id}
-                        className="group inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-xs"
+
+                  {/* Façade : toit, murs, étages, sol */}
+                  <div className="flex-1 px-5 pb-4 pt-3">
+                    {etages.length === 0 ? (
+                      <button
+                        type="button"
+                        onClick={() => setModal({ kind: 'niveau', batimentId: b.id })}
+                        className="w-full rounded-md border border-dashed border-input px-4 py-8 text-left text-ui text-muted-foreground transition-colors hover:border-foreground/40 hover:text-foreground"
                       >
-                        <Layers className="h-3 w-3 text-muted-foreground" />
-                        {n.nom}
-                        <button
-                          onClick={() => supprimerNiveau(n)}
-                          className="text-muted-foreground opacity-0 transition hover:text-danger group-hover:opacity-100"
-                          aria-label="Supprimer le niveau"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </span>
-                    ))
-                  )}
-                </div>
-              </div>
+                        Aucun niveau déclaré.{' '}
+                        <span className="font-medium text-primary">Ajouter le rez-de-chaussée →</span>
+                      </button>
+                    ) : (
+                      <div className="grid grid-cols-[3.75rem_minmax(0,1fr)]">
+                        {/* Toit */}
+                        <span />
+                        <svg viewBox="0 0 100 12" preserveAspectRatio="none" aria-hidden className="block h-5 w-full text-foreground/80">
+                          <path d="M0 12 L50 1 L100 12" fill="none" stroke="currentColor" strokeWidth="2" vectorEffect="non-scaling-stroke" strokeLinejoin="round" />
+                        </svg>
+
+                        {etages.map((e) => {
+                          const actif = fBat === b.id && fNiv === e.id;
+                          const vac = e.lots.filter((l) => l.statut === 'VACANT').length;
+                          return (
+                            <div key={e.id} className="contents group/etage">
+                              <button
+                                type="button"
+                                onClick={() => filtrerEtage(b.id, e.id)}
+                                aria-pressed={actif}
+                                title={`Voir les lots ${e.id === '__none' ? 'sans niveau' : 'de ' + e.nom}`}
+                                className={cn(
+                                  'flex flex-col items-end justify-center pr-2.5 text-right transition-colors hover:text-foreground',
+                                  actif ? 'text-foreground' : 'text-muted-foreground',
+                                )}
+                              >
+                                <span className="nums text-ui font-semibold leading-none">
+                                  {e.id === '__none' ? 'Sans niv.' : e.nom}
+                                </span>
+                                <span className="nums mt-0.5 text-[0.625rem] leading-none">
+                                  {e.lots.length} lot{e.lots.length > 1 ? 's' : ''}
+                                  {vac > 0 && ` · ${vac} vac.`}
+                                </span>
+                              </button>
+                              <div
+                                className={cn(
+                                  'relative flex min-h-[2.75rem] flex-wrap items-center gap-1 border-x-2 border-t border-x-foreground/80 border-t-border px-1.5 py-1.5',
+                                  e.id === '__none' && 'border-dashed border-x-foreground/30',
+                                  actif && 'bg-muted/70',
+                                )}
+                              >
+                                {e.lots.length === 0 ? (
+                                  <span className="px-1 text-2xs text-muted-foreground/60">aucun lot à ce niveau</span>
+                                ) : (
+                                  e.lots
+                                    .sort((x, y) => x.reference.localeCompare(y.reference, 'fr', { numeric: true }))
+                                    .map((l) => (
+                                      <Tooltip
+                                        key={l.id}
+                                        className="min-w-[3.25rem] flex-1"
+                                        label={`${l.reference} · ${LABELS[l.type] ?? l.type} · ${LABELS[l.statut] ?? l.statut}`}
+                                      >
+                                        <button
+                                          type="button"
+                                          onClick={() => setModal({ kind: 'lot-voir', lot: l })}
+                                          aria-label={`Lot ${l.reference}, ${LABELS[l.statut] ?? l.statut}`}
+                                          className={cn(
+                                            'nums flex h-8 w-full items-center justify-center rounded-[3px] border text-2xs font-semibold transition-[transform,box-shadow] hover:-translate-y-px hover:shadow-[0_2px_0_0_hsl(var(--foreground)/0.25)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                                            CELL[l.statut] ?? CELL.VACANT,
+                                          )}
+                                        >
+                                          {l.reference}
+                                        </button>
+                                      </Tooltip>
+                                    ))
+                                )}
+                                {e.niveau && e.lots.length === 0 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => supprimerNiveau(e.niveau!)}
+                                    aria-label={`Supprimer le niveau ${e.nom}`}
+                                    className="ml-auto rounded-sm p-1 text-muted-foreground opacity-0 transition hover:text-danger focus-visible:opacity-100 group-hover/etage:opacity-100"
+                                  >
+                                    <X className="h-3.5 w-3.5" />
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+
+                        {/* Sol */}
+                        <span />
+                        <span aria-hidden className="-mx-3 block h-[3px] rounded-full bg-foreground/80" />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Synthèse du bâtiment */}
+                  <dl className="grid grid-cols-4 border-t border-border">
+                    {[
+                      ['Lots', lotsBat.length, ''],
+                      ['Occupés', occ, ''],
+                      ['Vacants', lotsBat.filter((l) => l.statut === 'VACANT').length, 'text-warning'],
+                      [
+                        'Surface',
+                        lotsBat.some((l) => l.superficie)
+                          ? `${lotsBat.reduce((t, l) => t + Number(l.superficie ?? 0), 0).toLocaleString('fr-FR', { maximumFractionDigits: 0 })} m²`
+                          : '—',
+                        '',
+                      ],
+                    ].map(([k, v, tone]) => (
+                      <div key={k as string} className="border-r border-border px-4 py-2.5 last:border-r-0">
+                        <dt className="text-2xs text-muted-foreground">{k}</dt>
+                        <dd className={cn('nums font-display text-lg leading-tight', Number(v) > 0 && (tone as string))}>{v}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Légende */}
+        {lots.length > 0 && (
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-2xs text-muted-foreground">
+            {LEGENDE.map(([k, label]) => (
+              <span key={k} className="inline-flex items-center gap-1.5">
+                <span aria-hidden className={cn('h-3 w-3 rounded-[2px] border', CELL[k])} />
+                {label}
+              </span>
             ))}
           </div>
         )}
-      </Card>
+      </section>
+      )}
 
       {/* ---- Lots ---- */}
-      <Card className="p-5">
-        <div className="flex flex-wrap items-center justify-between gap-2">
+      {view === 'lots' && (
+      <section id="lots-table" className="space-y-4">
+        <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h2 className="text-sm font-semibold">Lots</h2>
-            <p className="text-xs text-muted-foreground">
-              {lots.length} lot{lots.length > 1 ? 's' : ''}
+            <h2 className="font-display text-xl font-medium">Lots</h2>
+            <p className="text-ui text-muted-foreground">
+              {lots.length} lot{lots.length > 1 ? 's' : ''} dans cette copropriété.
             </p>
           </div>
-          <Button asChild size="sm">
+          <Button asChild>
             <Link href={`/coproprietes/${coproprieteId}/lots/nouveau`}>
               <Plus className="h-4 w-4" /> Nouveau lot
             </Link>
           </Button>
         </div>
 
-        {/* filtres */}
-        <div className="mt-4 flex flex-wrap items-center gap-2">
+        <ListToolbar
+          search={<SearchInput value={q} onChange={setQ} placeholder="Référence ou désignation…" />}
+          hasFilters={hasLotFilters}
+          onReset={resetLots}
+          count={lotsFiltres.length}
+        >
+          <SearchSelect size="sm" className="w-40" value={fType} onChange={setFType} options={LOT_TYPES} allowEmpty emptyLabel="Tous les types" aria-label="Filtrer par type" />
+          <SearchSelect size="sm" className="w-52" value={fStatut} onChange={setFStatut} options={LOT_STATUTS} allowEmpty emptyLabel="Tous les statuts" aria-label="Filtrer par statut" />
           <SearchSelect
-            className="w-44"
-            value={fType}
-            onChange={setFType}
-            options={LOT_TYPES}
-            allowEmpty
-            emptyLabel="Tous les types"
-          />
-          <SearchSelect
-            className="w-56"
-            value={fStatut}
-            onChange={setFStatut}
-            options={LOT_STATUTS}
-            allowEmpty
-            emptyLabel="Tous les statuts"
-          />
-          <SearchSelect
+            size="sm"
             className="w-44"
             value={fBat}
-            onChange={setFBat}
-            options={batiments.map((b) => [b.id, b.nom] as const)}
+            onChange={(v) => {
+              setFBat(v);
+              setFNiv('');
+            }}
+            options={batiments.map((x) => [x.id, x.nom] as const)}
             allowEmpty
             emptyLabel="Tous les bâtiments"
+            aria-label="Filtrer par bâtiment"
           />
-          <span className="ml-auto text-sm text-muted-foreground">
-            {lotsFiltres.length} résultat{lotsFiltres.length > 1 ? 's' : ''}
-          </span>
-        </div>
+          {fBat && (
+            <SearchSelect
+              size="sm"
+              className="w-36"
+              value={fNiv}
+              onChange={setFNiv}
+              options={[...(niveaux[fBat] ?? [])].sort((x, y) => x.ordre - y.ordre).map((n) => [n.id, n.nom] as const)}
+              allowEmpty
+              emptyLabel="Tous niveaux"
+              aria-label="Filtrer par niveau"
+            />
+          )}
+        </ListToolbar>
 
         {lotsFiltres.length === 0 ? (
           <Empty
@@ -296,69 +479,61 @@ export function BatimentsLots({ coproprieteId }: { coproprieteId: string }) {
             desc={lots.length === 0 ? 'Ajoutez votre premier lot.' : 'Aucun résultat pour ces filtres.'}
           />
         ) : (
-          <div className="mt-4 overflow-x-auto rounded-lg border border-border">
-            <table className="w-full border-collapse text-sm">
-              <thead>
-                <tr className="bg-muted text-left text-xs uppercase tracking-wider text-muted-foreground">
-                  <th className="border border-border px-3 py-2.5 font-semibold">Réf.</th>
-                  <th className="border border-border px-3 py-2.5 font-semibold">Type</th>
-                  <th className="border border-border px-3 py-2.5 font-semibold">Superficie</th>
-                  <th className="border border-border px-3 py-2.5 font-semibold">Bâtiment</th>
-                  <th className="border border-border px-3 py-2.5 font-semibold">Statut</th>
-                  <th className="border border-border px-3 py-2.5 text-right font-semibold">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {lotsFiltres.map((l) => (
-                  <tr key={l.id} className="bg-card transition-colors hover:bg-muted/50">
-                    <td className="border border-border px-3 py-2.5 font-medium">{l.reference}</td>
-                    <td className="border border-border px-3 py-2.5">{LABELS[l.type] ?? l.type}</td>
-                    <td className="border border-border px-3 py-2.5 text-muted-foreground">
-                      {l.superficie ? `${l.superficie} m²` : '—'}
-                    </td>
-                    <td className="border border-border px-3 py-2.5 text-muted-foreground">
-                      {batNom(l.batimentId)}
-                    </td>
-                    <td className="border border-border px-3 py-2.5">
-                      <Badge tone={LOT_STATUT_TONE[l.statut] ?? 'neutral'} dot>
-                        {LABELS[l.statut] ?? l.statut}
-                      </Badge>
-                    </td>
-                    <td className="border border-border px-3 py-2.5">
-                      <div className="flex items-center justify-end gap-1">
-                        <Tooltip label="Voir">
-                          <button
-                            onClick={() => setModal({ kind: 'lot-voir', lot: l })}
-                            className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </button>
-                        </Tooltip>
-                        <Tooltip label="Modifier">
-                          <Link
-                            href={`/coproprietes/${coproprieteId}/lots/${l.id}/modifier`}
-                            className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground"
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Link>
-                        </Tooltip>
-                        <Tooltip label="Supprimer">
-                          <button
-                            onClick={() => supprimerLot(l)}
-                            className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-danger/10 hover:text-danger"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </Tooltip>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Table className="mt-4" footer={<Pagination {...pagedLots} />}>
+            <THead>
+              <Th>Lot</Th>
+              <Th>Emplacement</Th>
+              <Th numeric>Superficie</Th>
+              <Th>Statut</Th>
+              <Th className="no-print w-[1%]">
+                <span className="sr-only">Actions</span>
+              </Th>
+            </THead>
+            <tbody>
+              {pagedLots.pageItems.map((l) => (
+                <Tr key={l.id} onOpen={() => setModal({ kind: 'lot-voir', lot: l })}>
+                  <Td>
+                    <button
+                      type="button"
+                      onClick={() => setModal({ kind: 'lot-voir', lot: l })}
+                      className="text-left font-medium underline-offset-4 hover:underline"
+                    >
+                      {l.reference}
+                    </button>
+                    <p className="text-2xs text-muted-foreground">
+                      {[LABELS[l.type] ?? l.type, l.designation].filter(Boolean).join(' · ')}
+                    </p>
+                  </Td>
+                  <Td className={l.batimentId ? '' : 'text-muted-foreground/60'}>
+                    {l.batimentId ? (
+                      <>
+                        {batNom(l.batimentId)}
+                        {nivNom(l.niveauId) && <span className="text-muted-foreground"> · {nivNom(l.niveauId)}</span>}
+                      </>
+                    ) : (
+                      '—'
+                    )}
+                  </Td>
+                  <Td numeric className={l.superficie ? '' : 'text-muted-foreground/50'}>
+                    {l.superficie ? `${Number(l.superficie).toLocaleString('fr-FR', { maximumFractionDigits: 2 })} m²` : '—'}
+                  </Td>
+                  <Td>
+                    <Badge tone={LOT_STATUT_TONE[l.statut] ?? 'neutral'}>{LABELS[l.statut] ?? l.statut}</Badge>
+                  </Td>
+                  <Td>
+                    <RowActions>
+                      <RowAction label="Aperçu" icon={Eye} onClick={() => setModal({ kind: 'lot-voir', lot: l })} />
+                      <RowAction label="Modifier" icon={Pencil} href={`/coproprietes/${coproprieteId}/lots/${l.id}/modifier`} />
+                      <RowAction label="Supprimer" icon={Trash2} danger onClick={() => supprimerLot(l)} />
+                    </RowActions>
+                  </Td>
+                </Tr>
+              ))}
+            </tbody>
+          </Table>
         )}
-      </Card>
+      </section>
+      )}
 
       {/* ---- Modals ---- */}
       {modal?.kind === 'batiment' && (
