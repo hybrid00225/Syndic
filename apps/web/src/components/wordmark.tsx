@@ -26,6 +26,7 @@ export function Wordmark({
   size = 'md',
   onDark = false,
   compact = false,
+  tone = 'default',
 }: {
   subtitle?: string;
   className?: string;
@@ -33,14 +34,17 @@ export function Wordmark({
   onDark?: boolean;
   /** Marque seule (sidebar repliée). */
   compact?: boolean;
+  /** `nav` : couleurs de la navigation (teinte réglable dans les Paramètres). */
+  tone?: 'default' | 'nav';
 }) {
+  const nav = tone === 'nav';
   return (
-    <div className={cn('flex items-center gap-2.5', onDark ? 'text-white' : 'text-foreground', className)}>
-      <LogoMark className={cn(size === 'lg' ? 'h-8 w-8' : 'h-7 w-7', onDark ? 'text-white' : 'text-primary')} />
+    <div className={cn('flex items-center gap-2.5', onDark ? 'text-white' : nav ? 'text-nav-foreground' : 'text-foreground', className)}>
+      <LogoMark className={cn(size === 'lg' ? 'h-8 w-8' : 'h-7 w-7', onDark ? 'text-white' : nav ? 'text-nav-accent' : 'text-primary')} />
       {!compact && (
         <div className="leading-none">
           <div className={cn('font-display font-medium tracking-tight', size === 'lg' ? 'text-2xl' : 'text-lg')}>
-            Syndic <span className={cn('italic', onDark ? 'text-white/70' : 'text-muted-foreground')}>Alpha</span>
+            Syndic <span className={cn('italic', onDark ? 'text-white/70' : nav ? 'text-nav-muted' : 'text-muted-foreground')}>Alpha</span>
           </div>
           {subtitle && (
             <div className={cn('mt-1 text-2xs', onDark ? 'text-white/55' : 'text-muted-foreground')}>{subtitle}</div>

@@ -19,7 +19,10 @@ import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Ledger, Stat, Composition, Ring, Tokens } from '@/components/ui/stat';
+import { Ledger, Stat, Composition, Ring } from '@/components/ui/stat';
+import { Tooltip } from '@/components/ui/tooltip';
+import { CountryFlag, CountryLabel } from '@/components/ui/country';
+import { nomPays } from '@/lib/constants';
 import { PageLoader } from '@/components/ui/spinner';
 import { formatDate, STATUT_COPRO } from '@/lib/utils';
 import { cn } from '@/lib/utils';
@@ -38,12 +41,6 @@ const statutTone: Record<string, 'success' | 'warning' | 'neutral'> = {
   EN_CREATION: 'warning',
   INACTIVE: 'neutral',
   CLOTUREE: 'neutral',
-};
-const statutAccent: Record<string, string> = {
-  ACTIVE: 'border-l-success',
-  EN_CREATION: 'border-l-warning',
-  INACTIVE: 'border-l-border',
-  CLOTUREE: 'border-l-border',
 };
 
 export default function DashboardPage() {
@@ -113,7 +110,17 @@ export default function DashboardPage() {
           label="Pays"
           value={pays}
           info="Pays (juridictions) où se situent vos copropriétés."
-          aside={<Tokens items={[...new Set(copros.map((c) => c.pays))]} />}
+          aside={
+            <span className="flex max-w-[60%] flex-wrap justify-end gap-1.5">
+              {[...new Set(copros.map((c) => c.pays))].map((code) => (
+                <Tooltip key={code} label={nomPays(code)}>
+                  <span tabIndex={0} className="rounded-[2px] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
+                    <CountryFlag code={code} />
+                  </span>
+                </Tooltip>
+              ))}
+            </span>
+          }
           note="juridictions"
         />
       </Ledger>
@@ -153,13 +160,7 @@ export default function DashboardPage() {
           ) : (
             <div className="grid gap-3 sm:grid-cols-2">
               {copros.slice(0, 6).map((c) => (
-                <Card
-                  key={c.id}
-                  className={cn(
-                    'border-l-[3px] p-4 transition-shadow hover:shadow-lift',
-                    statutAccent[c.statut] ?? 'border-l-border',
-                  )}
-                >
+                <Card key={c.id} className="p-4 transition-shadow hover:shadow-lift">
                   <div className="flex items-start justify-between">
                     <div className="flex items-start gap-3">
                       <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
@@ -168,7 +169,7 @@ export default function DashboardPage() {
                       <div>
                         <p className="font-medium leading-tight">{c.nom}</p>
                         <p className="mt-0.5 text-sm text-muted-foreground">
-                          {c.adresse ?? c.pays}
+                          {c.adresse ?? 'Adresse non renseignée'}
                         </p>
                       </div>
                     </div>
@@ -177,9 +178,7 @@ export default function DashboardPage() {
                     </Badge>
                   </div>
                   <div className="mt-4 flex items-center gap-2 border-t border-border pt-3 text-xs text-muted-foreground">
-                    <span className="rounded bg-muted px-1.5 py-0.5 font-medium">
-                      {c.pays}
-                    </span>
+                    <CountryLabel code={c.pays} className="font-medium text-foreground" />
                     <span>·</span>
                     <span>Créée le {formatDate(c.dateCreation)}</span>
                   </div>

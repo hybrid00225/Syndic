@@ -15,6 +15,8 @@ import { api } from '@/lib/api';
 import { useApi, useInvalidate } from '@/lib/query';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { IconButton } from '@/components/ui/icon-button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Input, Field } from '@/components/ui/input';
 import { SearchSelect } from '@/components/ui/select';
@@ -163,12 +165,10 @@ export function LotOperations({ coproprieteId }: { coproprieteId: string }) {
             {actifs.map((l) => (
               <Tr key={l.id}>
                 <Td>
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     aria-label={`Sélectionner ${l.reference}`}
                     checked={selection.has(l.id)}
                     onChange={() => toggle(l.id)}
-                    className="h-4 w-4 accent-[hsl(var(--primary))]"
                   />
                 </Td>
                 <Td className="font-medium">{l.reference}</Td>
@@ -190,20 +190,12 @@ export function LotOperations({ coproprieteId }: { coproprieteId: string }) {
                 </Td>
                 <Td>
                   <div className="flex items-center justify-end gap-1">
-                    <IconAction label="Changer la destination" onClick={() => setOp({ kind: 'destination', lot: l })}>
-                      <Replace className="h-4 w-4" />
-                    </IconAction>
-                    <IconAction label="Subdiviser" onClick={() => setOp({ kind: 'subdivision', lot: l })}>
-                      <Split className="h-4 w-4" />
-                    </IconAction>
+                    <IconButton label="Changer la destination" icon={Replace} onClick={() => setOp({ kind: 'destination', lot: l })} />
+                    <IconButton label="Subdiviser" icon={Split} onClick={() => setOp({ kind: 'subdivision', lot: l })} />
                     {l.lotPrincipalId ? (
-                      <IconAction label="Détacher l'annexe" onClick={() => detacher(l)}>
-                        <Unlink className="h-4 w-4" />
-                      </IconAction>
+                      <IconButton label="Détacher l'annexe" icon={Unlink} onClick={() => detacher(l)} />
                     ) : (
-                      <IconAction label="Annexer à un lot principal" onClick={() => setOp({ kind: 'annexer', lot: l })}>
-                        <Link2 className="h-4 w-4" />
-                      </IconAction>
+                      <IconButton label="Annexer à un lot principal" icon={Link2} onClick={() => setOp({ kind: 'annexer', lot: l })} />
                     )}
                   </div>
                 </Td>
@@ -396,9 +388,7 @@ function SubdivisionSheet({
             <div className="mb-2 flex items-center justify-between">
               <span className="text-2xs font-semibold text-muted-foreground">Nouveau lot {i + 1}</span>
               {rows.length > 2 && (
-                <button type="button" aria-label="Retirer" onClick={() => setRows((rs) => rs.filter((_, idx) => idx !== i))} className="text-muted-foreground hover:text-danger">
-                  <Trash2 className="h-4 w-4" />
-                </button>
+                <IconButton label="Retirer" icon={Trash2} size="sm" tone="danger" onClick={() => setRows((rs) => rs.filter((_, idx) => idx !== i))} />
               )}
             </div>
             <LotFields valeur={r} onChange={(v) => set(i, v)} batOptions={batOptions} />
@@ -535,19 +525,6 @@ function LotFields({
   );
 }
 
-function IconAction({ label, onClick, children }: { label: string; onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      title={label}
-      onClick={onClick}
-      className={cn('flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground')}
-    >
-      {children}
-    </button>
-  );
-}
 
 // Transforme le formulaire en payload API (nettoie les champs vides).
 function nettoyer(n: NouveauLot): Record<string, unknown> {

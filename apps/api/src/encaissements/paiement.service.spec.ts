@@ -1,5 +1,5 @@
 import { Test } from '@nestjs/testing';
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, ConflictException } from '@nestjs/common';
 import { PaiementService } from './paiement.service';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -33,7 +33,7 @@ describe('PaiementService (encaissements)', () => {
 
   describe('create', () => {
     it("RG-33 : idempotence — même clé renvoie l'existant sans recréer", async () => {
-      const existant = { id: 'p-existant' };
+      const existant = { id: 'p-existant', coproprieteId: 'C1' };
       prisma.paiement.findUnique.mockResolvedValue(existant);
 
       const res = await service.create('C1', {
@@ -45,6 +45,18 @@ describe('PaiementService (encaissements)', () => {
 
       expect(res).toBe(existant);
       expect(prisma.paiement.create).not.toHaveBeenCalled();
+    });
+
+    it("idempotence : clé d'une autre copropriété → 409 (pas de fuite)", async () => {
+      prisma.paiement.findUnique.mockResolvedValue({ id: 'p-autre', coproprieteId: 'C9' });
+      await expect(
+        service.create('C1', {
+          payeurId: PAYEUR,
+          montant: 50000,
+          moyen: 'MOBILE_MONEY',
+          idempotencyKey: 'tx-123',
+        } as any),
+      ).rejects.toBeInstanceOf(ConflictException);
     });
 
     it("RG-31 : payeur d'un autre syndic → 400", async () => {

@@ -1,4 +1,5 @@
-import { IsInt, IsNotEmpty, IsOptional, IsString, Min } from 'class-validator';
+import { IsInt, IsNotEmpty, IsOptional, IsString, Min, Max } from 'class-validator';
+import { INT_MAX } from '../../../common/validation';
 
 export class CreateNiveauDto {
   @IsString()
@@ -8,5 +9,6 @@ export class CreateNiveauDto {
   @IsInt()
   @Min(0)
   @IsOptional()
+  @Max(INT_MAX)
   ordre?: number;
 }

@@ -5,8 +5,10 @@ import { useRouter } from 'next/navigation';
 import { Building2, MapPin, Wallet, FileText } from 'lucide-react';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
-import { Input, Label } from '@/components/ui/input';
+import { FormError } from '@/components/ui/alert';
+import { Input, Label, Textarea } from '@/components/ui/input';
 import { SearchSelect } from '@/components/ui/select';
+import { CountrySelect } from '@/components/ui/country';
 import { Spinner } from '@/components/ui/spinner';
 import {
   PAYS,
@@ -131,7 +133,7 @@ export function CoproForm({
       <Section icon={MapPin} title="Localisation" desc="Pays, adresse et rattachement.">
         <div>
           <Label>Pays *</Label>
-          <SearchSelect value={form.pays} onChange={(v) => set('pays', v)} options={PAYS} />
+          <CountrySelect value={form.pays} onChange={(v) => set('pays', v)} />
         </div>
         <div>
           <Label>Ensemble immobilier / résidence</Label>
@@ -200,21 +202,17 @@ export function CoproForm({
       {/* Description */}
       <Section icon={FileText} title="Description" desc="Notes libres (parties communes, particularités…).">
         <div className="sm:col-span-2">
-          <textarea
+          <Textarea
+            aria-label="Description"
             value={form.description}
             onChange={(e) => set('description', e.target.value)}
             rows={3}
             placeholder="Informations complémentaires…"
-            className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
           />
         </div>
       </Section>
 
-      {error && (
-        <p className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">
-          {error}
-        </p>
-      )}
+      <FormError error={error} />
 
       <div className="flex justify-end gap-2">
         <Button

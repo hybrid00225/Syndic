@@ -1,6 +1,7 @@
 import {
   ConflictException,
   Injectable,
+  Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
@@ -8,6 +9,13 @@ import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+
+// Coût bcrypt (≈ 250 ms) : compromis sécurité / latence de connexion.
+export const BCRYPT_COUT = 12;
+
+// Hash factice comparé quand l'email est inconnu : le temps de réponse est
+// alors le même que pour un mauvais mot de passe (pas d'énumération des comptes).
+const HASH_FACTICE = bcrypt.hashSync('mot-de-passe-factice-0', BCRYPT_COUT);
 
 interface UserLike {
   id: string;
@@ -19,6 +27,8 @@ interface UserLike {
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger('Auth');
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
@@ -31,9 +41,10 @@ export class AuthService {
       select: { id: true },
     });
     if (existant) {
+      this.logger.warn(`Inscription refusée : email déjà utilisé (${dto.email})`);
       throw new ConflictException('Cet email est déjà utilisé');
     }
-    const hash = await bcrypt.hash(dto.motDePasse, 10);
+    const hash = await bcrypt.hash(dto.motDePasse, BCRYPT_COUT);
 
     const user = await this.prisma.$transaction(async (tx) => {
       const syndic = await tx.syndic.create({
@@ -54,6 +65,7 @@ export class AuthService {
       });
     });
 
+    this.logger.log(`Inscription : syndic ${user.syndicId}, admin ${user.id}`);
     return this.reponseToken(user);
   }
 
@@ -61,13 +73,18 @@ export class AuthService {
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
     });
-    if (!user || !user.actif) {
+    // Toujours un bcrypt.compare, même si l'utilisateur n'existe pas (timing).
+    const ok = await bcrypt.compare(
+      dto.motDePasse,
+      user?.motDePasse ?? HASH_FACTICE,
+    );
+    if (!user || !ok || !user.actif) {
+      this.logger.warn(
+        `Échec de connexion pour ${dto.email} (${!user ? 'compte inconnu' : !ok ? 'mot de passe erroné' : 'compte désactivé'})`,
+      );
       throw new UnauthorizedException('Identifiants invalides');
     }
-    const ok = await bcrypt.compare(dto.motDePasse, user.motDePasse);
-    if (!ok) {
-      throw new UnauthorizedException('Identifiants invalides');
-    }
+    this.logger.log(`Connexion réussie : utilisateur ${user.id}`);
     return this.reponseToken(user);
   }
 
@@ -87,11 +104,12 @@ export class AuthService {
   }
 
   private async reponseToken(user: UserLike) {
+    // Le jeton ne porte que l'identité : les droits sont relus en base à chaque
+    // requête (JwtAuthGuard). syndicId/adminSyndic restent pour compatibilité front.
     const token = await this.jwt.signAsync({
       sub: user.id,
       syndicId: user.syndicId,
       adminSyndic: user.adminSyndic,
-      email: user.email,
     });
     return {
       token,

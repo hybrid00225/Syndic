@@ -7,7 +7,10 @@ import {
   IsUUID,
   Min,
   ValidateNested,
+  Max,
+  ArrayMaxSize,
 } from 'class-validator';
+import { INT_MAX } from '../../../common/validation';
 
 export class TantiemeItemDto {
   @IsUUID()
@@ -15,6 +18,7 @@ export class TantiemeItemDto {
 
   @IsInt()
   @Min(0)
+  @Max(INT_MAX)
   valeur: number;
 }
 
@@ -26,5 +30,6 @@ export class CreateVersionDto {
   @ArrayNotEmpty()
   @ValidateNested({ each: true })
   @Type(() => TantiemeItemDto)
+  @ArrayMaxSize(10000)
   tantiemes: TantiemeItemDto[];
 }

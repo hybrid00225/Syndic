@@ -13,12 +13,15 @@ import {
   FileText,
   CheckCircle2,
 } from 'lucide-react';
-import { api, apiBlob } from '@/lib/api';
+import { api, fetchDocument } from '@/lib/api';
+import { useDocumentPreview } from '@/components/ui/document-preview';
 import { useApi, useInvalidate } from '@/lib/query';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input, Textarea, Field } from '@/components/ui/input';
+import { Modal } from '@/components/ui/modal';
+import { IconButton } from '@/components/ui/icon-button';
 import { SearchSelect } from '@/components/ui/select';
 import { Spinner, PageLoader } from '@/components/ui/spinner';
 import { useAlert, useConfirm } from '@/components/ui/confirm';
@@ -83,14 +86,6 @@ const videReglement = { dateAdoption: '', reference: '', description: '', docume
 
 const koMo = (o: number) => (o < 1024 * 1024 ? `${Math.round(o / 1024)} Ko` : `${(o / (1024 * 1024)).toFixed(1)} Mo`);
 
-// Télécharge/ouvre un document protégé (envoie le token d'auth).
-async function ouvrirDocument(doc: DocumentMeta) {
-  const blob = await apiBlob(`/documents/${doc.id}/download`);
-  const url = URL.createObjectURL(blob);
-  window.open(url, '_blank');
-  setTimeout(() => URL.revokeObjectURL(url), 60_000);
-}
-
 function Reglement({
   coproprieteId,
   versions,
@@ -101,6 +96,7 @@ function Reglement({
   const invalidate = useInvalidate();
   const confirm = useConfirm();
   const alert = useAlert();
+  const preview = useDocumentPreview();
   const [form, setForm] = useState<
     (typeof videReglement & { id?: string; documentNom?: string }) | null
   >(null);
@@ -199,16 +195,22 @@ function Reglement({
       </div>
 
       {form && (
-        <div className="mt-4 rounded-md border border-border bg-muted/30 p-4">
-          <div className="flex items-center justify-between">
-            <h4 className="text-ui font-semibold">
-              {form.id ? 'Modifier la version' : 'Nouvelle version du règlement'}
-            </h4>
-            <button type="button" aria-label="Fermer" onClick={() => ouvrir(null)} className="text-muted-foreground hover:text-foreground">
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+        <Modal
+          size="lg"
+          title={form.id ? 'Modifier la version' : 'Nouvelle version du règlement'}
+          onClose={() => ouvrir(null)}
+          footer={
+            <>
+              <Button variant="secondary" onClick={() => ouvrir(null)}>
+                Annuler
+              </Button>
+              <Button onClick={enregistrer} disabled={saving}>
+                {saving && <Spinner />} {form.id ? 'Enregistrer' : 'Créer la version'}
+              </Button>
+            </>
+          }
+        >
+          <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Date d'adoption" hint="Entrée en vigueur.">
               <Input type="date" value={form.dateAdoption} onChange={(e) => setForm({ ...form, dateAdoption: e.target.value })} />
             </Field>
@@ -231,9 +233,16 @@ function Reglement({
                   <span className="flex items-center gap-2 text-ui">
                     <FileText className="h-4 w-4 text-primary" />
                     {fichier.name} <span className="text-2xs text-muted-foreground">({koMo(fichier.size)})</span>
-                    <button type="button" aria-label="Retirer le fichier" onClick={() => { setFichier(null); if (fileInput.current) fileInput.current.value = ''; }} className="text-muted-foreground hover:text-danger">
-                      <X className="h-3.5 w-3.5" />
-                    </button>
+                    <IconButton
+                      label="Retirer le fichier"
+                      icon={X}
+                      size="xs"
+                      tone="danger"
+                      onClick={() => {
+                        setFichier(null);
+                        if (fileInput.current) fileInput.current.value = '';
+                      }}
+                    />
                   </span>
                 ) : form.documentNom ? (
                   <span className="flex items-center gap-2 text-ui text-muted-foreground">
@@ -249,18 +258,10 @@ function Reglement({
               <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={2} placeholder="Objet de cette version…" />
             </Field>
           </div>
-          <div className="mt-4 flex gap-2">
-            <Button onClick={enregistrer} disabled={saving}>
-              {saving && <Spinner />} {form.id ? 'Enregistrer' : 'Créer la version'}
-            </Button>
-            <Button variant="ghost" onClick={() => ouvrir(null)}>
-              Annuler
-            </Button>
-          </div>
-        </div>
+        </Modal>
       )}
 
-      {versions.length === 0 && !form ? (
+      {versions.length === 0 ? (
         <p className="mt-4 text-ui text-muted-foreground">
           Aucun règlement enregistré. Ajoutez la première version (acte, date d'adoption, document).
         </p>
@@ -286,27 +287,37 @@ function Reglement({
                 {v.reference ? ` · ${v.reference}` : ''}
               </span>
               {v.document && (
-                <button
-                  type="button"
-                  onClick={() => ouvrirDocument(v.document!)}
-                  className="flex items-center gap-1.5 text-ui text-primary hover:underline"
-                >
+                <Button variant="link" className="gap-1.5 text-ui" onClick={() => {
+                    const doc = v.document!;
+                    preview({
+                      title: `Règlement de copropriété · v${v.version}`,
+                      description: doc.nomOriginal,
+                      load: () => fetchDocument(`/documents/${doc.id}/download`, doc.nomOriginal),
+                    });
+                  }}>
                   <Download className="h-3.5 w-3.5" /> {v.document.nomOriginal}
-                </button>
+                </Button>
               )}
               {v.description && <span className="w-full text-2xs text-muted-foreground">{v.description}</span>}
               <div className="ml-auto flex items-center gap-1">
                 {!v.courant && (
-                  <button type="button" aria-label="Définir comme version en vigueur" title="Définir en vigueur" onClick={() => definirCourante(v)} className="flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-success">
-                    <CheckCircle2 className="h-4 w-4" />
-                  </button>
+                  <IconButton label="Définir comme version en vigueur" icon={CheckCircle2} tone="success" onClick={() => definirCourante(v)} />
                 )}
-                <button type="button" aria-label="Modifier" onClick={() => ouvrir({ id: v.id, dateAdoption: v.dateAdoption?.slice(0, 10) ?? '', reference: v.reference ?? '', description: v.description ?? '', documentId: v.document?.id ?? '', documentNom: v.document?.nomOriginal })} className="flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground">
-                  <Pencil className="h-4 w-4" />
-                </button>
-                <button type="button" aria-label="Supprimer" onClick={() => supprimer(v)} className="flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground hover:bg-danger/10 hover:text-danger">
-                  <Trash2 className="h-4 w-4" />
-                </button>
+                <IconButton
+                  label="Modifier"
+                  icon={Pencil}
+                  onClick={() =>
+                    ouvrir({
+                      id: v.id,
+                      dateAdoption: v.dateAdoption?.slice(0, 10) ?? '',
+                      reference: v.reference ?? '',
+                      description: v.description ?? '',
+                      documentId: v.document?.id ?? '',
+                      documentNom: v.document?.nomOriginal,
+                    })
+                  }
+                />
+                <IconButton label="Supprimer" icon={Trash2} tone="danger" onClick={() => supprimer(v)} />
               </div>
             </li>
           ))}
@@ -434,14 +445,14 @@ function AccesSection({
                 {LABELS[a.type] ?? a.type}
               </Badge>
               {a.batiment && <span className="text-2xs text-muted-foreground">· {a.batiment.nom}</span>}
-              <button
-                type="button"
-                aria-label={`Supprimer ${a.nom}`}
+              <IconButton
+                label={`Supprimer ${a.nom}`}
+                icon={X}
+                size="xs"
+                tone="danger"
+                revealOnHover
                 onClick={() => supprimer(a)}
-                className="ml-1 text-muted-foreground opacity-0 transition hover:text-danger group-hover:opacity-100"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
+              />
             </li>
           ))}
         </ul>

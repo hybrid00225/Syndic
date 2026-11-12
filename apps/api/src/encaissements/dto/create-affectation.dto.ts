@@ -1,4 +1,5 @@
-import { IsInt, IsUUID, Min } from 'class-validator';
+import { IsInt, IsUUID, Min, Max } from 'class-validator';
+import { MONTANT_MAX } from '../../common/validation';
 
 export class CreateAffectationDto {
   @IsUUID()
@@ -6,5 +7,6 @@ export class CreateAffectationDto {
 
   @IsInt()
   @Min(1)
+  @Max(MONTANT_MAX)
   montantAffecte: number; // entier (unité de la devise)
 }

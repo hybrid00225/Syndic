@@ -215,7 +215,13 @@ export class AppelService {
   async releve(appelId: string, personneId: string) {
     const appel = await this.prisma.appelDeFonds.findUnique({
       where: { id: appelId },
-      select: { id: true, numero: true, motif: true, dateEcheance: true },
+      select: {
+        id: true,
+        numero: true,
+        motif: true,
+        dateEcheance: true,
+        copropriete: { select: { syndicId: true } },
+      },
     });
     if (!appel) {
       throw new NotFoundException(`Appel de fonds ${appelId} introuvable`);
@@ -228,11 +234,13 @@ export class AppelService {
       },
     });
     const total = lignes.reduce((acc, l) => acc + l.montant, 0n);
-    const personne = await this.prisma.personne.findUnique({
-      where: { id: personneId },
+    // Personne restreinte au syndic de l'appel (isolation).
+    const personne = await this.prisma.personne.findFirst({
+      where: { id: personneId, syndicId: appel.copropriete.syndicId },
       select: { id: true, nom: true, prenom: true },
     });
-    return { appel, personne, total, lignes };
+    const { copropriete: _copro, ...appelPublic } = appel;
+    return { appel: appelPublic, personne, total, lignes };
   }
 
   // L'usufruitier est redevable des charges ; sinon les détenteurs en pleine

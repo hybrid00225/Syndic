@@ -1,6 +1,7 @@
 import { Type } from 'class-transformer';
 import {
   IsArray,
+  IsEnum,
   IsInt,
   IsNotEmpty,
   IsNumber,
@@ -8,7 +9,11 @@ import {
   IsString,
   Min,
   ValidateNested,
+  Max,
+  ArrayMaxSize,
 } from 'class-validator';
+import { LotStatut, LotType } from '@prisma/client';
+import { INT_MAX, SUPERFICIE_MAX } from '../../../common/validation';
 import { CreateCoproprieteDto } from './create-copropriete.dto';
 
 export class NiveauInput {
@@ -18,6 +23,7 @@ export class NiveauInput {
 
   @IsInt()
   @IsOptional()
+  @Max(INT_MAX)
   ordre?: number;
 }
 
@@ -30,6 +36,7 @@ export class BatimentInput {
   @ValidateNested({ each: true })
   @Type(() => NiveauInput)
   @IsOptional()
+  @ArrayMaxSize(200)
   niveaux?: NiveauInput[];
 }
 
@@ -38,9 +45,9 @@ export class LotInput {
   @IsNotEmpty()
   reference: string;
 
-  @IsString()
+  @IsEnum(LotType)
   @IsOptional()
-  type?: string;
+  type?: LotType;
 
   @IsString()
   @IsOptional()
@@ -49,19 +56,22 @@ export class LotInput {
   @IsNumber()
   @Min(0)
   @IsOptional()
+  @Max(SUPERFICIE_MAX)
   superficie?: number;
 
-  @IsString()
+  @IsEnum(LotStatut)
   @IsOptional()
-  statut?: string;
+  statut?: LotStatut;
 
   // Indices dans les tableaux batiments / niveaux (rattachement).
   @IsInt()
   @IsOptional()
+  @Max(INT_MAX)
   batimentIndex?: number;
 
   @IsInt()
   @IsOptional()
+  @Max(INT_MAX)
   niveauIndex?: number;
 }
 
@@ -71,11 +81,13 @@ export class CreateCoproprieteCompleteDto extends CreateCoproprieteDto {
   @ValidateNested({ each: true })
   @Type(() => BatimentInput)
   @IsOptional()
+  @ArrayMaxSize(200)
   batiments?: BatimentInput[];
 
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => LotInput)
   @IsOptional()
+  @ArrayMaxSize(5000)
   lots?: LotInput[];
 }

@@ -70,6 +70,8 @@ export interface PersonneRef {
 
 export interface Personne extends PersonneRef {
   actif: boolean;
+  statut?: string;
+  modeNotification?: string;
   createdAt?: string;
   contacts: Contact[];
   _count?: { detentions: number };

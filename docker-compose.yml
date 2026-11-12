@@ -8,7 +8,7 @@ services:
       POSTGRES_PASSWORD: syndic_dev_pwd
       POSTGRES_DB: syndic_alpha
     ports:
-      # Hôte 5435 : 5432/5433/5434 déjà pris par d'autres stacks (zenapi-v2, whatsapp-hub…)
+      # Hôte 5435 : 5432/5433/5434 déjà pris par d'autres stacks locales
       - "5435:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data

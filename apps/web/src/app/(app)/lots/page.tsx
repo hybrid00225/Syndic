@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Eye, Pencil, Trash2, Printer, Download } from 'lucide-react';
+import { Eye, Pencil, Trash2 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useApi, useInvalidate } from '@/lib/query';
 import type { CoproRef, Lot } from '@/lib/types';
@@ -10,15 +10,13 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Ledger, Stat, Composition, Ring } from '@/components/ui/stat';
 import { SearchSelect } from '@/components/ui/select';
-import { Tooltip } from '@/components/ui/tooltip';
 import { useAlert, useConfirm } from '@/components/ui/confirm';
 import { PageLoader } from '@/components/ui/spinner';
 import { EmptyState, ErrorState } from '@/components/ui/states';
-import { Table, THead, Th, Td, Tr } from '@/components/ui/table';
+import { ColumnsMenu, DataTable, TableExport, useDataTable, type Column } from '@/components/ui/data-table';
 import { Sheet, DefList } from '@/components/ui/sheet';
-import { ListToolbar, Pagination, RowAction, RowActions, SearchInput, usePaged } from '@/components/ui/list';
+import { ListToolbar, RowAction, RowActions, SearchInput } from '@/components/ui/list';
 import { PageHeader } from '@/components/page-header';
-import { exportCsv } from '@/lib/csv';
 import { LOT_TYPES, LOT_STATUTS, LOT_STATUT_TONE, LABELS } from '@/lib/constants';
 
 const surface = (s: string | null) =>
@@ -36,21 +34,85 @@ export default function LotsPage() {
   const [statut, setStatut] = useState('');
   const [voir, setVoir] = useState<Lot | null>(null);
 
+  // Colonnes (mémorisées : seule l'ouverture de l'aperçu dépend de l'état).
+  const columns = useMemo<Column<Lot>[]>(
+    () => [
+      {
+        id: 'reference',
+        header: 'Lot',
+        required: true,
+        value: (l) => l.reference,
+        cell: (l) => (
+          <>
+            <button type="button" onClick={() => setVoir(l)} className="text-left font-medium underline-offset-4 hover:underline">
+              {l.reference}
+            </button>
+            <p className="text-2xs text-muted-foreground">
+              {[LABELS[l.type] ?? l.type, l.designation].filter(Boolean).join(' · ')}
+            </p>
+          </>
+        ),
+      },
+      {
+        id: 'copropriete',
+        header: 'Copropriété',
+        value: (l) => l.copropriete?.nom,
+        cell: (l) => (
+          <Link href={`/coproprietes/${l.coproprieteId}`} className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
+            {l.copropriete?.nom}
+          </Link>
+        ),
+      },
+      { id: 'type', header: 'Type', defaultHidden: true, value: (l) => LABELS[l.type] ?? l.type, cell: (l) => LABELS[l.type] ?? l.type },
+      { id: 'designation', header: 'Désignation', defaultHidden: true, value: (l) => l.designation, cell: (l) => l.designation ?? '—' },
+      {
+        id: 'batiment',
+        header: 'Bâtiment',
+        value: (l) => l.batiment?.nom,
+        cell: (l) => <span className={l.batiment ? '' : 'text-muted-foreground/60'}>{l.batiment?.nom ?? '—'}</span>,
+      },
+      {
+        id: 'superficie',
+        header: 'Superficie (m²)',
+        numeric: true,
+        value: (l) => (l.superficie ? Number(l.superficie) : null),
+        cell: (l) => surface(l.superficie),
+      },
+      {
+        id: 'statut',
+        header: 'Statut',
+        value: (l) => LABELS[l.statut] ?? l.statut,
+        cell: (l) => <Badge tone={LOT_STATUT_TONE[l.statut] ?? 'neutral'}>{LABELS[l.statut] ?? l.statut}</Badge>,
+      },
+    ],
+    [],
+  );
+
   const filtered = useMemo(() => {
     if (!lots) return [];
     const n = q.trim().toLowerCase();
-    return lots
-      .filter(
-        (l) =>
-          (!n || l.reference.toLowerCase().includes(n) || (l.designation ?? '').toLowerCase().includes(n)) &&
-          (!copro || l.coproprieteId === copro) &&
-          (!type || l.type === type) &&
-          (!statut || l.statut === statut),
-      )
-      .sort((a, b) => a.reference.localeCompare(b.reference, 'fr', { numeric: true }));
+    return lots.filter(
+      (l) =>
+        (!n || l.reference.toLowerCase().includes(n) || (l.designation ?? '').toLowerCase().includes(n)) &&
+        (!copro || l.coproprieteId === copro) &&
+        (!type || l.type === type) &&
+        (!statut || l.statut === statut),
+    );
   }, [lots, q, copro, type, statut]);
 
-  const paged = usePaged(filtered, 10, `${q}|${copro}|${type}|${statut}`);
+  const table = useDataTable({
+    id: 'lots',
+    rows: filtered,
+    columns,
+    defaultSort: { id: 'reference', dir: 'asc' },
+    resetKey: `${q}|${copro}|${type}|${statut}`,
+  });
+  const filtres = [
+    q && `Recherche : « ${q} »`,
+    copro && `Copropriété : ${copros.find((c) => c.id === copro)?.nom ?? ''}`,
+    type && `Type : ${LABELS[type] ?? type}`,
+    statut && `Statut : ${LABELS[statut] ?? statut}`,
+  ].filter(Boolean) as string[];
 
   if (isLoading) return <PageLoader label="Chargement des lots…" />;
 
@@ -61,18 +123,7 @@ export default function LotsPage() {
       subtitle="Appartements, parkings, commerces… de toutes vos copropriétés."
       actions={
         lots && lots.length > 0 ? (
-          <>
-            <Tooltip label="Imprimer la liste filtrée" side="bottom">
-              <Button variant="secondary" onClick={() => window.print()}>
-                <Printer className="h-4 w-4" /> Imprimer
-              </Button>
-            </Tooltip>
-            <Tooltip label="Télécharger la liste filtrée (CSV, Excel)" side="bottom">
-              <Button variant="secondary" onClick={() => exporter()}>
-                <Download className="h-4 w-4" /> Exporter
-              </Button>
-            </Tooltip>
-          </>
+          <TableExport table={table} title="Lots" filters={filtres} filename="lots" />
         ) : undefined
       }
     />
@@ -117,22 +168,6 @@ export default function LotsPage() {
     setType('');
     setStatut('');
   };
-
-  function exporter() {
-    exportCsv(
-      'lots.csv',
-      ['Référence', 'Copropriété', 'Type', 'Désignation', 'Superficie (m²)', 'Bâtiment', 'Statut'],
-      filtered.map((l) => [
-        l.reference,
-        l.copropriete?.nom,
-        LABELS[l.type] ?? l.type,
-        l.designation,
-        l.superficie,
-        l.batiment?.nom,
-        LABELS[l.statut] ?? l.statut,
-      ]),
-    );
-  }
 
   const supprimer = async (l: Lot) => {
     const ok = await confirm({
@@ -208,6 +243,7 @@ export default function LotsPage() {
           hasFilters={hasFilters}
           onReset={reset}
           count={filtered.length}
+          tools={<ColumnsMenu table={table} />}
         >
           <SearchSelect size="sm" className="w-52" value={copro} onChange={setCopro} options={copros.map((c) => [c.id, c.nom] as const)} allowEmpty emptyLabel="Toutes les copropriétés" aria-label="Filtrer par copropriété" />
           <SearchSelect size="sm" className="w-40" value={type} onChange={setType} options={LOT_TYPES} allowEmpty emptyLabel="Tous les types" aria-label="Filtrer par type" />
@@ -226,53 +262,18 @@ export default function LotsPage() {
             Aucun lot ne correspond à ces critères.
           </EmptyState>
         ) : (
-          <Table footer={<Pagination {...paged} />}>
-            <THead>
-              <Th>Lot</Th>
-              <Th>Copropriété</Th>
-              <Th>Bâtiment</Th>
-              <Th numeric>Superficie</Th>
-              <Th>Statut</Th>
-              <Th className="no-print w-[1%]">
-                <span className="sr-only">Actions</span>
-              </Th>
-            </THead>
-            <tbody>
-              {paged.pageItems.map((l) => (
-                <Tr key={l.id} onOpen={() => setVoir(l)}>
-                  <Td>
-                    <button
-                      type="button"
-                      onClick={() => setVoir(l)}
-                      className="text-left font-medium underline-offset-4 hover:underline"
-                    >
-                      {l.reference}
-                    </button>
-                    <p className="text-2xs text-muted-foreground">
-                      {[LABELS[l.type] ?? l.type, l.designation].filter(Boolean).join(' · ')}
-                    </p>
-                  </Td>
-                  <Td>
-                    <Link href={`/coproprietes/${l.coproprieteId}`} className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
-                      {l.copropriete?.nom}
-                    </Link>
-                  </Td>
-                  <Td className={l.batiment ? '' : 'text-muted-foreground/60'}>{l.batiment?.nom ?? '—'}</Td>
-                  <Td numeric>{surface(l.superficie)}</Td>
-                  <Td>
-                    <Badge tone={LOT_STATUT_TONE[l.statut] ?? 'neutral'}>{LABELS[l.statut] ?? l.statut}</Badge>
-                  </Td>
-                  <Td>
-                    <RowActions>
-                      <RowAction label="Aperçu" icon={Eye} onClick={() => setVoir(l)} />
-                      <RowAction label="Modifier" icon={Pencil} href={modifier(l)} />
-                      <RowAction label="Supprimer" icon={Trash2} danger onClick={() => supprimer(l)} />
-                    </RowActions>
-                  </Td>
-                </Tr>
-              ))}
-            </tbody>
-          </Table>
+          <DataTable
+            table={table}
+            rowKey={(l) => l.id}
+            onRowOpen={setVoir}
+            rowActions={(l) => (
+              <RowActions>
+                <RowAction label="Aperçu" icon={Eye} onClick={() => setVoir(l)} />
+                <RowAction label="Modifier" icon={Pencil} href={modifier(l)} />
+                <RowAction label="Supprimer" icon={Trash2} danger onClick={() => supprimer(l)} />
+              </RowActions>
+            )}
+          />
         )}
       </div>
 

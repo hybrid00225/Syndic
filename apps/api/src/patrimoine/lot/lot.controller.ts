@@ -21,7 +21,10 @@ import {
   SubdivisionLotDto,
 } from './dto/operations-lot.dto';
 import { CurrentUser, Roles } from '../../auth/decorators';
-import { AuthUser } from '../../auth/auth-user.interface';
+import {
+  AuthUser,
+  perimetreCoproprietes,
+} from '../../auth/auth-user.interface';
 
 @Controller()
 export class LotController {
@@ -36,14 +39,14 @@ export class LotController {
     @Query('statut') statut?: string,
     @Query('batimentId') batimentId?: string,
   ) {
-    return this.service.findAllBySyndic(user.syndicId, {
-      coproprieteId,
-      type,
-      statut,
-      batimentId,
-    });
+    return this.service.findAllBySyndic(
+      user.syndicId,
+      { coproprieteId, type, statut, batimentId },
+      perimetreCoproprietes(user),
+    );
   }
 
+  @Roles(RoleType.GESTIONNAIRE)
   @Post('coproprietes/:coproprieteId/lots')
   create(
     @Param('coproprieteId', ParseUUIDPipe) coproprieteId: string,
@@ -65,11 +68,13 @@ export class LotController {
     return this.service.findOne(id);
   }
 
+  @Roles(RoleType.GESTIONNAIRE)
   @Patch('lots/:id')
   update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateLotDto) {
     return this.service.update(id, dto);
   }
 
+  @Roles(RoleType.GESTIONNAIRE)
   @Delete('lots/:id')
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.service.remove(id);

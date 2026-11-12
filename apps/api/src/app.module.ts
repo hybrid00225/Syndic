@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { validerEnv } from './config/env';
 import { PrismaModule } from './prisma/prisma.module';
 import { AppController } from './app.controller';
 import { AuthModule } from './auth/auth.module';
@@ -15,7 +17,12 @@ import { DocumentsModule } from './documents/documents.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({ isGlobal: true, validate: validerEnv }),
+    // Limitation de débit globale par IP (ajustée par @Throttle sur /auth).
+    ThrottlerModule.forRoot({
+      throttlers: [{ name: 'default', ttl: 60_000, limit: 600 }],
+      errorMessage: 'Trop de requêtes : réessayez dans quelques instants',
+    }),
     PrismaModule,
     AuthModule,
     AuditModule,

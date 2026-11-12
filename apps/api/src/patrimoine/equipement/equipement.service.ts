@@ -70,11 +70,17 @@ export class EquipementService {
   }
 
   // Vue globale : tous les équipements du syndic (+ copropriété).
-  findAllBySyndic(syndicId: string, query: QueryEquipementDto) {
+  findAllBySyndic(
+    syndicId: string,
+    query: QueryEquipementDto,
+    perimetre?: string[],
+  ) {
     return this.prisma.equipement.findMany({
       where: {
         copropriete: { syndicId },
         coproprieteId: query.coproprieteId || undefined,
+        // Non-admin : limité aux copropriétés où il a un rôle.
+        ...(perimetre ? { AND: [{ coproprieteId: { in: perimetre } }] } : {}),
         categorie: query.categorie,
         etat: query.etat,
         batimentId: query.batimentId || undefined,

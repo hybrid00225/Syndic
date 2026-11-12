@@ -8,6 +8,8 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
+import { RoleType } from '@prisma/client';
+import { Roles } from '../../auth/decorators';
 import { VersionService } from './version.service';
 import { CreateVersionDto } from './dto/create-version.dto';
 
@@ -15,6 +17,7 @@ import { CreateVersionDto } from './dto/create-version.dto';
 export class VersionController {
   constructor(private readonly service: VersionService) {}
 
+  @Roles(RoleType.GESTIONNAIRE)
   @Post()
   create(
     @Param('cleId', ParseUUIDPipe) cleId: string,
@@ -24,6 +27,7 @@ export class VersionController {
   }
 
   // Corrige la version courante sur place (tant qu'elle n'a pas servi).
+  @Roles(RoleType.GESTIONNAIRE)
   @Patch('courante')
   corrigerCourante(
     @Param('cleId', ParseUUIDPipe) cleId: string,

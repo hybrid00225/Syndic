@@ -7,6 +7,8 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
+import { RoleType } from '@prisma/client';
+import { Roles } from '../auth/decorators';
 import { RecouvrementService } from './recouvrement.service';
 import { CreateRelanceDto } from './dto/create-relance.dto';
 
@@ -30,6 +32,7 @@ export class RecouvrementController {
     return this.service.situation(coproprieteId, personneId);
   }
 
+  @Roles(RoleType.GESTIONNAIRE, RoleType.COMPTABLE)
   @Post('personnes/:personneId/relances')
   creerRelance(
     @Param('coproprieteId', ParseUUIDPipe) coproprieteId: string,

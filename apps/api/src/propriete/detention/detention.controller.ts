@@ -10,6 +10,8 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
+import { RoleType } from '@prisma/client';
+import { Roles } from '../../auth/decorators';
 import { DetentionService } from './detention.service';
 import { CreateDetentionDto } from './dto/create-detention.dto';
 import { UpdateDetentionDto } from './dto/update-detention.dto';
@@ -18,6 +20,7 @@ import { UpdateDetentionDto } from './dto/update-detention.dto';
 export class DetentionController {
   constructor(private readonly service: DetentionService) {}
 
+  @Roles(RoleType.GESTIONNAIRE)
   @Post('lots/:lotId/detentions')
   create(
     @Param('lotId', ParseUUIDPipe) lotId: string,
@@ -40,6 +43,7 @@ export class DetentionController {
     return this.service.findByPersonne(id);
   }
 
+  @Roles(RoleType.GESTIONNAIRE)
   @Patch('detentions/:id')
   update(
     @Param('id', ParseUUIDPipe) id: string,
@@ -48,6 +52,7 @@ export class DetentionController {
     return this.service.update(id, dto);
   }
 
+  @Roles(RoleType.GESTIONNAIRE)
   @Delete('detentions/:id')
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.service.remove(id);

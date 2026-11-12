@@ -8,15 +8,22 @@ import {
   IsUUID,
   IsEnum,
   ValidateNested,
+  ArrayMaxSize,
 } from 'class-validator';
 import {
   ModeNotification,
   NatureRepresentation,
   PersonneStatut,
+  PersonneType,
 } from '@prisma/client';
 import { CreateContactDto } from './create-contact.dto';
 
 export class UpdatePersonneDto {
+  // Envoyé par le formulaire d'édition du front.
+  @IsEnum(PersonneType)
+  @IsOptional()
+  type?: PersonneType;
+
   @IsString()
   @IsNotEmpty()
   @IsOptional()
@@ -52,5 +59,6 @@ export class UpdatePersonneDto {
   @ValidateNested({ each: true })
   @Type(() => CreateContactDto)
   @IsOptional()
+  @ArrayMaxSize(50)
   contacts?: CreateContactDto[];
 }

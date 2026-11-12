@@ -7,6 +7,7 @@ import {
   IsString,
   IsUUID,
   ValidateNested,
+  ArrayMaxSize,
 } from 'class-validator';
 import {
   ModeNotification,
@@ -49,5 +50,6 @@ export class CreatePersonneDto {
   @ValidateNested({ each: true })
   @Type(() => CreateContactDto)
   @IsOptional()
+  @ArrayMaxSize(50)
   contacts?: CreateContactDto[];
 }

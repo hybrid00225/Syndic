@@ -10,7 +10,10 @@ import {
   IsUUID,
   Min,
   ValidateNested,
+  Max,
+  ArrayMaxSize,
 } from 'class-validator';
+import { MONTANT_MAX } from '../../common/validation';
 import { NaturePoste } from '@prisma/client';
 
 // Un poste de dépense prévue (règles 8.6 à 8.10).
@@ -33,6 +36,7 @@ export class PosteBudgetInputDto {
 
   @IsInt()
   @Min(1)
+  @Max(MONTANT_MAX)
   montantPrevu: number; // entier, unité de la devise de la copropriété
 }
 
@@ -50,5 +54,6 @@ export class CreateBudgetDto {
   @ArrayNotEmpty()
   @ValidateNested({ each: true })
   @Type(() => PosteBudgetInputDto)
+  @ArrayMaxSize(500)
   postes: PosteBudgetInputDto[];
 }

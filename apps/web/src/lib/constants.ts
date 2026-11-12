@@ -18,6 +18,11 @@ export const PAYS: [string, string][] = [
   ['Autre', 'Autre pays'],
 ];
 
+/** Nom d'un pays à partir de son code (le code lui-même s'il est inconnu). */
+export function nomPays(code: string) {
+  return PAYS.find((p) => p[0] === code)?.[1] ?? code;
+}
+
 export const STATUTS_COPRO: [string, string][] = [
   ['EN_CREATION', 'En création'],
   ['ACTIVE', 'Active'],

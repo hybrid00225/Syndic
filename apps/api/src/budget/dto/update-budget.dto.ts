@@ -6,6 +6,7 @@ import {
   IsOptional,
   IsString,
   ValidateNested,
+  ArrayMaxSize,
 } from 'class-validator';
 import { PosteBudgetInputDto } from './create-budget.dto';
 
@@ -21,5 +22,6 @@ export class UpdateBudgetDto {
   @ValidateNested({ each: true })
   @Type(() => PosteBudgetInputDto)
   @IsOptional()
+  @ArrayMaxSize(500)
   postes?: PosteBudgetInputDto[];
 }

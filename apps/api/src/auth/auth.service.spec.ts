@@ -69,6 +69,26 @@ describe('AuthService', () => {
   });
 
   describe('login', () => {
+    it('email inconnu → 401 (même message, bcrypt exécuté)', async () => {
+      prisma.user.findUnique.mockResolvedValue(null);
+      const debut = Date.now();
+      await expect(
+        service.login({ email: 'x@y.ci', motDePasse: 'peu-importe1' }),
+      ).rejects.toBeInstanceOf(UnauthorizedException);
+      // Comparaison contre le hash factice (coût 12) : pas de réponse instantanée.
+      expect(Date.now() - debut).toBeGreaterThan(50);
+    });
+
+    it('compte désactivé → 401 même avec le bon mot de passe', async () => {
+      const hash = await bcrypt.hash('bonMotDePasse1', 4);
+      prisma.user.findUnique.mockResolvedValue({
+        id: 'u1', email: 'a@b.ci', nom: 'A', motDePasse: hash, actif: false, syndicId: 's1', adminSyndic: false,
+      });
+      await expect(
+        service.login({ email: 'a@b.ci', motDePasse: 'bonMotDePasse1' }),
+      ).rejects.toBeInstanceOf(UnauthorizedException);
+    });
+
     it('refuse un mot de passe erroné (401)', async () => {
       const hash = await bcrypt.hash('bonMotDePasse', 10);
       prisma.user.findUnique.mockResolvedValue({

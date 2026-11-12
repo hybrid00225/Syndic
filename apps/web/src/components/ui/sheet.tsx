@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef } from 'react';
 import { X } from 'lucide-react';
+import { IconButton } from './icon-button';
 
 /**
  * Panneau latéral (aperçu rapide). Échap ou clic extérieur pour fermer,
@@ -57,14 +58,7 @@ export function Sheet({
               {title}
             </h2>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Fermer"
-            className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          >
-            <X className="h-4 w-4" />
-          </button>
+          <IconButton label="Fermer" icon={X} size="sm" onClick={onClose} />
         </div>
         <div className="flex-1 overflow-y-auto px-6 py-5">{children}</div>
         {footer && <div className="flex justify-end gap-2 border-t border-border px-6 py-4">{footer}</div>}

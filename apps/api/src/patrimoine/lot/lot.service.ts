@@ -80,6 +80,7 @@ export class LotService {
       statut?: string;
       batimentId?: string;
     },
+    perimetre?: string[],
   ) {
     return this.prisma.lot.findMany({
       where: {
@@ -88,6 +89,8 @@ export class LotService {
         type: (query.type as LotType) || undefined,
         statut: (query.statut as LotStatut) || undefined,
         batimentId: query.batimentId || undefined,
+        // Non-admin : limité aux copropriétés où il a un rôle.
+        ...(perimetre ? { AND: [{ coproprieteId: { in: perimetre } }] } : {}),
       },
       select: {
         id: true,

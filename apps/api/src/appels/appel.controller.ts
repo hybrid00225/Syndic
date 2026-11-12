@@ -43,11 +43,13 @@ export class AppelController {
     return this.service.releve(id, personneId);
   }
 
+  @Roles(RoleType.GESTIONNAIRE)
   @Patch('appels/:id/valider')
   valider(@Param('id', ParseUUIDPipe) id: string) {
     return this.service.valider(id);
   }
 
+  @Roles(RoleType.GESTIONNAIRE)
   @Patch('appels/:id/annuler')
   annuler(@Param('id', ParseUUIDPipe) id: string) {
     return this.service.annuler(id);

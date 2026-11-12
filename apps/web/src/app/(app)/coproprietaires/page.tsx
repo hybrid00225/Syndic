@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Eye, Pencil, Trash2, Plus, Printer, Download, Mail, Phone } from 'lucide-react';
+import { Eye, Pencil, Trash2, Plus, Mail, Phone } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useApi, useInvalidate } from '@/lib/query';
 import { nomPersonne, type Personne } from '@/lib/types';
@@ -10,24 +10,22 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Ledger, Stat, Composition, Ring } from '@/components/ui/stat';
 import { SearchSelect } from '@/components/ui/select';
-import { Tooltip } from '@/components/ui/tooltip';
 import { useAlert, useConfirm } from '@/components/ui/confirm';
 import { PageLoader } from '@/components/ui/spinner';
 import { EmptyState, ErrorState } from '@/components/ui/states';
-import { Table, THead, Th, Td, Tr } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { ColumnsMenu, DataTable, SortSelect, TableExport, useDataTable, type Column } from '@/components/ui/data-table';
 import {
   ListToolbar,
   Pagination,
   RowAction,
   RowActions,
   SearchInput,
-  usePaged,
   type View,
 } from '@/components/ui/list';
 import { PageHeader } from '@/components/page-header';
-import { exportCsv } from '@/lib/csv';
-import { cn } from '@/lib/utils';
-import { PERSONNE_TYPES, LABELS } from '@/lib/constants';
+import { cn, formatDate } from '@/lib/utils';
+import { PERSONNE_TYPES, PERSONNE_STATUT_TONE, LABELS } from '@/lib/constants';
 
 type Focus = '' | 'sans-lot' | 'incomplet';
 
@@ -56,6 +54,70 @@ function Monogram({ p, size = 'md' }: { p: Personne; size?: 'md' | 'lg' }) {
   );
 }
 
+const COLUMNS: Column<Personne>[] = [
+  {
+    id: 'nom',
+    header: 'Copropriétaire',
+    required: true,
+    value: (p) => nomPersonne(p),
+    cell: (p) => (
+      <div className="flex items-center gap-3">
+        <Monogram p={p} />
+        <div className="min-w-0">
+          <Link href={`/coproprietaires/${p.id}`} className="font-medium underline-offset-4 hover:underline">
+            {nomPersonne(p)}
+          </Link>
+          <p className="text-2xs text-muted-foreground">
+            {p.type === 'MORALE' ? 'Personne morale' : 'Personne physique'}
+          </p>
+        </div>
+      </div>
+    ),
+  },
+  { id: 'type', header: 'Type', defaultHidden: true, value: (p) => LABELS[p.type] ?? p.type, cell: (p) => LABELS[p.type] ?? p.type },
+  {
+    id: 'email',
+    header: 'Email',
+    value: email,
+    cell: (p) => <span className={cn(!email(p) && 'text-muted-foreground/60')}>{email(p) ?? '—'}</span>,
+  },
+  {
+    id: 'telephone',
+    header: 'Téléphone',
+    value: tel,
+    cell: (p) => <span className={cn('nums', !tel(p) && 'text-muted-foreground/60')}>{tel(p) ?? '—'}</span>,
+  },
+  {
+    id: 'statut',
+    header: 'Statut',
+    defaultHidden: true,
+    value: (p) => (p.statut ? LABELS[p.statut] ?? p.statut : null),
+    cell: (p) =>
+      p.statut ? <Badge tone={PERSONNE_STATUT_TONE[p.statut] ?? 'neutral'}>{LABELS[p.statut] ?? p.statut}</Badge> : '—',
+  },
+  {
+    id: 'notification',
+    header: 'Notification',
+    defaultHidden: true,
+    value: (p) => (p.modeNotification ? LABELS[p.modeNotification] ?? p.modeNotification : null),
+    cell: (p) => (p.modeNotification ? LABELS[p.modeNotification] ?? p.modeNotification : '—'),
+  },
+  {
+    id: 'lots',
+    header: 'Lots',
+    numeric: true,
+    value: nbLots,
+    cell: (p) => <span className={cn(nbLots(p) === 0 && 'text-warning')}>{nbLots(p)}</span>,
+  },
+  {
+    id: 'creee',
+    header: 'Créée le',
+    defaultHidden: true,
+    value: (p) => (p.createdAt ? new Date(p.createdAt) : null),
+    cell: (p) => <span className="nums text-muted-foreground">{p.createdAt ? formatDate(p.createdAt) : '—'}</span>,
+  },
+];
+
 export default function CoproprietairesPage() {
   const confirm = useConfirm();
   const alert = useAlert();
@@ -78,11 +140,23 @@ export default function CoproprietairesPage() {
           (!type || p.type === type) &&
           (focus !== 'sans-lot' || nbLots(p) === 0) &&
           (focus !== 'incomplet' || (!email(p) && !tel(p))),
-      )
-      .sort((a, b) => nomPersonne(a).localeCompare(nomPersonne(b), 'fr'));
+      );
   }, [list, q, type, focus]);
 
-  const paged = usePaged(filtered, 10, `${q}|${type}|${focus}`);
+  const table = useDataTable({
+    id: 'coproprietaires',
+    rows: filtered,
+    columns: COLUMNS,
+    defaultSort: { id: 'nom', dir: 'asc' },
+    resetKey: `${q}|${type}|${focus}`,
+  });
+  const paged = table.paged;
+  const filtres = [
+    q && `Recherche : « ${q} »`,
+    type && `Type : ${LABELS[type] ?? type}`,
+    focus === 'sans-lot' && 'Sans lot rattaché',
+    focus === 'incomplet' && 'Injoignables (ni email ni téléphone)',
+  ].filter(Boolean) as string[];
 
   if (isLoading) return <PageLoader label="Chargement des copropriétaires…" />;
 
@@ -94,17 +168,8 @@ export default function CoproprietairesPage() {
       actions={
         list && list.length > 0 ? (
           <>
-            <Tooltip label="Imprimer la liste filtrée" side="bottom">
-              <Button variant="secondary" onClick={() => window.print()}>
-                <Printer className="h-4 w-4" /> Imprimer
-              </Button>
-            </Tooltip>
-            <Tooltip label="Télécharger la liste filtrée (CSV, Excel)" side="bottom">
-              <Button variant="secondary" onClick={() => exporter()}>
-                <Download className="h-4 w-4" /> Exporter
-              </Button>
-            </Tooltip>
-            <Button asChild>
+            <TableExport table={table} title="Copropriétaires" filters={filtres} filename="coproprietaires" />
+            <Button asChild size="sm">
               <Link href="/coproprietaires/nouveau">
                 <Plus className="h-4 w-4" /> Nouveau copropriétaire
               </Link>
@@ -162,14 +227,6 @@ export default function CoproprietairesPage() {
     setType('');
     setFocus('');
   };
-
-  function exporter() {
-    exportCsv(
-      'coproprietaires.csv',
-      ['Nom', 'Type', 'Email', 'Téléphone', 'Lots détenus'],
-      filtered.map((p) => [nomPersonne(p), LABELS[p.type] ?? p.type, email(p), tel(p), nbLots(p)]),
-    );
-  }
 
   const supprimer = async (p: Personne) => {
     const ok = await confirm({
@@ -255,6 +312,7 @@ export default function CoproprietairesPage() {
           count={filtered.length}
           view={view}
           onViewChange={setView}
+          tools={view === 'table' ? <ColumnsMenu table={table} /> : <SortSelect table={table} />}
         >
           <SearchSelect
             size="sm"
@@ -280,45 +338,12 @@ export default function CoproprietairesPage() {
             Aucun copropriétaire ne correspond à ces critères.
           </EmptyState>
         ) : view === 'table' ? (
-          <Table footer={<Pagination {...paged} />}>
-            <THead>
-              <Th>Copropriétaire</Th>
-              <Th>Email</Th>
-              <Th>Téléphone</Th>
-              <Th numeric>Lots</Th>
-              <Th className="no-print w-[1%]">
-                <span className="sr-only">Actions</span>
-              </Th>
-            </THead>
-            <tbody>
-              {paged.pageItems.map((p) => (
-                <Tr key={p.id} href={`/coproprietaires/${p.id}`}>
-                  <Td>
-                    <div className="flex items-center gap-3">
-                      <Monogram p={p} />
-                      <div className="min-w-0">
-                        <Link
-                          href={`/coproprietaires/${p.id}`}
-                          className="font-medium underline-offset-4 hover:underline"
-                        >
-                          {nomPersonne(p)}
-                        </Link>
-                        <p className="text-2xs text-muted-foreground">
-                          {p.type === 'MORALE' ? 'Personne morale' : 'Personne physique'}
-                        </p>
-                      </div>
-                    </div>
-                  </Td>
-                  <Td className={cn(!email(p) && 'text-muted-foreground/60')}>{email(p) ?? '—'}</Td>
-                  <Td className={cn('nums', !tel(p) && 'text-muted-foreground/60')}>{tel(p) ?? '—'}</Td>
-                  <Td numeric className={cn(nbLots(p) === 0 && 'text-warning')}>
-                    {nbLots(p)}
-                  </Td>
-                  <Td>{actions(p)}</Td>
-                </Tr>
-              ))}
-            </tbody>
-          </Table>
+          <DataTable
+            table={table}
+            rowKey={(p) => p.id}
+            rowHref={(p) => `/coproprietaires/${p.id}`}
+            rowActions={actions}
+          />
         ) : (
           <>
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">

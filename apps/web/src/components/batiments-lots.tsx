@@ -17,13 +17,17 @@ import { api } from '@/lib/api';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Input, Label } from '@/components/ui/input';
+import { Field, Input } from '@/components/ui/input';
+import { Modal, ModalActions } from '@/components/ui/modal';
+import { FormError } from '@/components/ui/alert';
+import { IconButton } from '@/components/ui/icon-button';
+import { DefList } from '@/components/ui/sheet';
 import { SearchSelect } from '@/components/ui/select';
 import { Tooltip } from '@/components/ui/tooltip';
 import { useConfirm } from '@/components/ui/confirm';
 import { Spinner } from '@/components/ui/spinner';
-import { Table, THead, Th, Td, Tr } from '@/components/ui/table';
-import { ListToolbar, Pagination, RowAction, RowActions, SearchInput, usePaged } from '@/components/ui/list';
+import { ColumnsMenu, DataTable, TableExport, useDataTable, type Column } from '@/components/ui/data-table';
+import { ListToolbar, RowAction, RowActions, SearchInput } from '@/components/ui/list';
 import { EmptyState } from '@/components/ui/states';
 import { cn } from '@/lib/utils';
 import { LOT_TYPES, LOT_STATUTS, LOT_STATUT_TONE, LABELS } from '@/lib/constants';
@@ -75,10 +79,13 @@ export type PatrimoineView = 'batiments' | 'lots';
  */
 export function BatimentsLots({
   coproprieteId,
+  coproprieteNom,
   view,
   onViewChange,
 }: {
   coproprieteId: string;
+  /** Sous-titre des documents exportés. */
+  coproprieteNom: string;
   view: PatrimoineView;
   onViewChange: (v: PatrimoineView) => void;
 }) {
@@ -123,18 +130,15 @@ export function BatimentsLots({
 
   const lotsFiltres = useMemo(() => {
     const n = q.trim().toLowerCase();
-    return lots
-      .filter(
-        (l) =>
-          (!n || l.reference.toLowerCase().includes(n) || (l.designation ?? '').toLowerCase().includes(n)) &&
-          (!fType || l.type === fType) &&
-          (!fStatut || l.statut === fStatut) &&
-          (!fBat || l.batimentId === fBat) &&
-          (!fNiv || (fNiv === '__none' ? !l.niveauId : l.niveauId === fNiv)),
-      )
-      .sort((a, b) => a.reference.localeCompare(b.reference, 'fr', { numeric: true }));
+    return lots.filter(
+      (l) =>
+        (!n || l.reference.toLowerCase().includes(n) || (l.designation ?? '').toLowerCase().includes(n)) &&
+        (!fType || l.type === fType) &&
+        (!fStatut || l.statut === fStatut) &&
+        (!fBat || l.batimentId === fBat) &&
+        (!fNiv || (fNiv === '__none' ? !l.niveauId : l.niveauId === fNiv)),
+    );
   }, [lots, q, fType, fStatut, fBat, fNiv]);
-  const pagedLots = usePaged(lotsFiltres, 10, `${q}|${fType}|${fStatut}|${fBat}|${fNiv}`);
 
   const nivNom = (id: string | null) => {
     if (!id) return null;
@@ -144,6 +148,74 @@ export function BatimentsLots({
     }
     return null;
   };
+  const lotColumns: Column<Lot>[] = [
+    {
+      id: 'reference',
+      header: 'Lot',
+      required: true,
+      value: (l) => l.reference,
+      cell: (l) => (
+        <>
+          <button
+            type="button"
+            onClick={() => setModal({ kind: 'lot-voir', lot: l })}
+            className="text-left font-medium underline-offset-4 hover:underline"
+          >
+            {l.reference}
+          </button>
+          <p className="text-2xs text-muted-foreground">
+            {[LABELS[l.type] ?? l.type, l.designation].filter(Boolean).join(' · ')}
+          </p>
+        </>
+      ),
+    },
+    { id: 'type', header: 'Type', defaultHidden: true, value: (l) => LABELS[l.type] ?? l.type, cell: (l) => LABELS[l.type] ?? l.type },
+    { id: 'designation', header: 'Désignation', defaultHidden: true, value: (l) => l.designation, cell: (l) => l.designation ?? '—' },
+    {
+      id: 'batiment',
+      header: 'Bâtiment',
+      value: (l) => (l.batimentId ? batNom(l.batimentId) : null),
+      cell: (l) => <span className={l.batimentId ? '' : 'text-muted-foreground/60'}>{batNom(l.batimentId)}</span>,
+    },
+    {
+      id: 'niveau',
+      header: 'Niveau',
+      value: (l) => nivNom(l.niveauId),
+      cell: (l) => <span className="text-muted-foreground">{nivNom(l.niveauId) ?? '—'}</span>,
+    },
+    {
+      id: 'superficie',
+      header: 'Superficie (m²)',
+      numeric: true,
+      value: (l) => (l.superficie ? Number(l.superficie) : null),
+      cell: (l) => (
+        <span className={l.superficie ? '' : 'text-muted-foreground/50'}>
+          {l.superficie ? `${Number(l.superficie).toLocaleString('fr-FR', { maximumFractionDigits: 2 })} m²` : '—'}
+        </span>
+      ),
+    },
+    {
+      id: 'statut',
+      header: 'Statut',
+      value: (l) => LABELS[l.statut] ?? l.statut,
+      cell: (l) => <Badge tone={LOT_STATUT_TONE[l.statut] ?? 'neutral'}>{LABELS[l.statut] ?? l.statut}</Badge>,
+    },
+  ];
+  const lotTable = useDataTable({
+    id: 'copropriete-lots',
+    rows: lotsFiltres,
+    columns: lotColumns,
+    defaultSort: { id: 'reference', dir: 'asc' },
+    resetKey: `${q}|${fType}|${fStatut}|${fBat}|${fNiv}`,
+  });
+  const lotFiltres = [
+    q && `Recherche : « ${q} »`,
+    fType && `Type : ${LABELS[fType] ?? fType}`,
+    fStatut && `Statut : ${LABELS[fStatut] ?? fStatut}`,
+    fBat && `Bâtiment : ${batNom(fBat)}`,
+    fNiv && `Niveau : ${fNiv === '__none' ? 'sans niveau' : nivNom(fNiv) ?? ''}`,
+  ].filter(Boolean) as string[];
+
   const filtrerEtage = (batimentId: string, niveauId: string) => {
     const same = fBat === batimentId && fNiv === niveauId;
     setFBat(same ? '' : batimentId);
@@ -359,14 +431,14 @@ export function BatimentsLots({
                                     ))
                                 )}
                                 {e.niveau && e.lots.length === 0 && (
-                                  <button
-                                    type="button"
+                                  <IconButton
+                                    label={`Supprimer le niveau ${e.nom}`}
+                                    icon={X}
+                                    size="xs"
+                                    tone="danger"
                                     onClick={() => supprimerNiveau(e.niveau!)}
-                                    aria-label={`Supprimer le niveau ${e.nom}`}
-                                    className="ml-auto rounded-sm p-1 text-muted-foreground opacity-0 transition hover:text-danger focus-visible:opacity-100 group-hover/etage:opacity-100"
-                                  >
-                                    <X className="h-3.5 w-3.5" />
-                                  </button>
+                                    className="ml-auto opacity-0 focus-visible:opacity-100 group-hover/etage:opacity-100"
+                                  />
                                 )}
                               </div>
                             </div>
@@ -430,11 +502,20 @@ export function BatimentsLots({
               {lots.length} lot{lots.length > 1 ? 's' : ''} dans cette copropriété.
             </p>
           </div>
-          <Button asChild>
-            <Link href={`/coproprietes/${coproprieteId}/lots/nouveau`}>
-              <Plus className="h-4 w-4" /> Nouveau lot
-            </Link>
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <TableExport
+              table={lotTable}
+              title="Lots"
+              subtitle={coproprieteNom}
+              filters={lotFiltres}
+              filename="lots-copropriete"
+            />
+            <Button asChild size="sm">
+              <Link href={`/coproprietes/${coproprieteId}/lots/nouveau`}>
+                <Plus className="h-4 w-4" /> Nouveau lot
+              </Link>
+            </Button>
+          </div>
         </div>
 
         <ListToolbar
@@ -442,6 +523,7 @@ export function BatimentsLots({
           hasFilters={hasLotFilters}
           onReset={resetLots}
           count={lotsFiltres.length}
+          tools={<ColumnsMenu table={lotTable} />}
         >
           <SearchSelect size="sm" className="w-40" value={fType} onChange={setFType} options={LOT_TYPES} allowEmpty emptyLabel="Tous les types" aria-label="Filtrer par type" />
           <SearchSelect size="sm" className="w-52" value={fStatut} onChange={setFStatut} options={LOT_STATUTS} allowEmpty emptyLabel="Tous les statuts" aria-label="Filtrer par statut" />
@@ -479,58 +561,18 @@ export function BatimentsLots({
             desc={lots.length === 0 ? 'Ajoutez votre premier lot.' : 'Aucun résultat pour ces filtres.'}
           />
         ) : (
-          <Table className="mt-4" footer={<Pagination {...pagedLots} />}>
-            <THead>
-              <Th>Lot</Th>
-              <Th>Emplacement</Th>
-              <Th numeric>Superficie</Th>
-              <Th>Statut</Th>
-              <Th className="no-print w-[1%]">
-                <span className="sr-only">Actions</span>
-              </Th>
-            </THead>
-            <tbody>
-              {pagedLots.pageItems.map((l) => (
-                <Tr key={l.id} onOpen={() => setModal({ kind: 'lot-voir', lot: l })}>
-                  <Td>
-                    <button
-                      type="button"
-                      onClick={() => setModal({ kind: 'lot-voir', lot: l })}
-                      className="text-left font-medium underline-offset-4 hover:underline"
-                    >
-                      {l.reference}
-                    </button>
-                    <p className="text-2xs text-muted-foreground">
-                      {[LABELS[l.type] ?? l.type, l.designation].filter(Boolean).join(' · ')}
-                    </p>
-                  </Td>
-                  <Td className={l.batimentId ? '' : 'text-muted-foreground/60'}>
-                    {l.batimentId ? (
-                      <>
-                        {batNom(l.batimentId)}
-                        {nivNom(l.niveauId) && <span className="text-muted-foreground"> · {nivNom(l.niveauId)}</span>}
-                      </>
-                    ) : (
-                      '—'
-                    )}
-                  </Td>
-                  <Td numeric className={l.superficie ? '' : 'text-muted-foreground/50'}>
-                    {l.superficie ? `${Number(l.superficie).toLocaleString('fr-FR', { maximumFractionDigits: 2 })} m²` : '—'}
-                  </Td>
-                  <Td>
-                    <Badge tone={LOT_STATUT_TONE[l.statut] ?? 'neutral'}>{LABELS[l.statut] ?? l.statut}</Badge>
-                  </Td>
-                  <Td>
-                    <RowActions>
-                      <RowAction label="Aperçu" icon={Eye} onClick={() => setModal({ kind: 'lot-voir', lot: l })} />
-                      <RowAction label="Modifier" icon={Pencil} href={`/coproprietes/${coproprieteId}/lots/${l.id}/modifier`} />
-                      <RowAction label="Supprimer" icon={Trash2} danger onClick={() => supprimerLot(l)} />
-                    </RowActions>
-                  </Td>
-                </Tr>
-              ))}
-            </tbody>
-          </Table>
+          <DataTable
+            table={lotTable}
+            rowKey={(l) => l.id}
+            onRowOpen={(l) => setModal({ kind: 'lot-voir', lot: l })}
+            rowActions={(l) => (
+              <RowActions>
+                <RowAction label="Aperçu" icon={Eye} onClick={() => setModal({ kind: 'lot-voir', lot: l })} />
+                <RowAction label="Modifier" icon={Pencil} href={`/coproprietes/${coproprieteId}/lots/${l.id}/modifier`} />
+                <RowAction label="Supprimer" icon={Trash2} danger onClick={() => supprimerLot(l)} />
+              </RowActions>
+            )}
+          />
         )}
       </section>
       )}
@@ -577,33 +619,6 @@ function Empty({ icon: Icon, title, desc }: { icon: typeof Home; title: string; 
   );
 }
 
-function Modal({
-  title,
-  onClose,
-  children,
-}: {
-  title: string;
-  onClose: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <div
-      className="fixed inset-0 z-[80] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
-      onClick={onClose}
-    >
-      <Card className="w-full max-w-md animate-fade-up" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between border-b border-border p-4">
-          <h3 className="font-semibold">{title}</h3>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-        <div className="p-4">{children}</div>
-      </Card>
-    </div>
-  );
-}
-
 function BatimentModal({
   coproprieteId,
   batiment,
@@ -617,8 +632,10 @@ function BatimentModal({
 }) {
   const [nom, setNom] = useState(batiment?.nom ?? '');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
     setLoading(true);
     try {
       if (batiment) {
@@ -633,6 +650,8 @@ function BatimentModal({
         });
       }
       onDone();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Une erreur est survenue');
     } finally {
       setLoading(false);
     }
@@ -640,18 +659,18 @@ function BatimentModal({
   return (
     <Modal title={batiment ? 'Renommer le bâtiment' : 'Nouveau bâtiment'} onClose={onClose}>
       <form onSubmit={submit} className="space-y-4">
-        <div>
-          <Label>Nom du bâtiment *</Label>
-          <Input required autoFocus value={nom} onChange={(e) => setNom(e.target.value)} placeholder="Ex. Bâtiment A" />
-        </div>
-        <div className="flex justify-end gap-2">
-          <Button type="button" variant="secondary" onClick={onClose}>
+        <Field label="Nom du bâtiment" required>
+          <Input required maxLength={120} value={nom} onChange={(e) => setNom(e.target.value)} placeholder="Ex. Bâtiment A" />
+        </Field>
+        <FormError error={error} />
+        <ModalActions>
+          <Button variant="secondary" onClick={onClose}>
             Annuler
           </Button>
           <Button type="submit" disabled={loading}>
             {loading && <Spinner />} {batiment ? 'Enregistrer' : 'Créer'}
           </Button>
-        </div>
+        </ModalActions>
       </form>
     </Modal>
   );
@@ -670,8 +689,10 @@ function NiveauModal({
 }) {
   const [nom, setNom] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
     setLoading(true);
     try {
       await api(`/batiments/${batimentId}/niveaux`, {
@@ -679,6 +700,8 @@ function NiveauModal({
         body: JSON.stringify({ nom, ordre }),
       });
       onDone();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Une erreur est survenue');
     } finally {
       setLoading(false);
     }
@@ -686,18 +709,18 @@ function NiveauModal({
   return (
     <Modal title="Nouveau niveau" onClose={onClose}>
       <form onSubmit={submit} className="space-y-4">
-        <div>
-          <Label>Nom du niveau *</Label>
-          <Input required autoFocus value={nom} onChange={(e) => setNom(e.target.value)} placeholder="Ex. RDC, 1er étage" />
-        </div>
-        <div className="flex justify-end gap-2">
-          <Button type="button" variant="secondary" onClick={onClose}>
+        <Field label="Nom du niveau" required>
+          <Input required maxLength={120} value={nom} onChange={(e) => setNom(e.target.value)} placeholder="Ex. RDC, 1er étage" />
+        </Field>
+        <FormError error={error} />
+        <ModalActions>
+          <Button variant="secondary" onClick={onClose}>
             Annuler
           </Button>
           <Button type="submit" disabled={loading}>
             {loading && <Spinner />} Créer
           </Button>
-        </div>
+        </ModalActions>
       </form>
     </Modal>
   );
@@ -714,22 +737,15 @@ function LotVoirModal({
 }) {
   return (
     <Modal title={`Lot ${lot.reference}`} onClose={onClose}>
-      <dl className="space-y-2.5 text-sm">
-        <Row label="Type" value={LABELS[lot.type] ?? lot.type} />
-        <Row label="Désignation" value={lot.designation ?? '—'} />
-        <Row label="Superficie" value={lot.superficie ? `${lot.superficie} m²` : '—'} />
-        <Row label="Bâtiment" value={batNom} />
-        <Row label="Statut" value={LABELS[lot.statut] ?? lot.statut} />
-      </dl>
+      <DefList
+        items={[
+          ['Type', LABELS[lot.type] ?? lot.type],
+          ['Désignation', lot.designation ?? '—'],
+          ['Superficie', lot.superficie ? `${lot.superficie} m²` : '—'],
+          ['Bâtiment', batNom],
+          ['Statut', LABELS[lot.statut] ?? lot.statut],
+        ]}
+      />
     </Modal>
-  );
-}
-
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between gap-3 border-b border-border pb-2 last:border-0">
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className="font-medium">{value}</dd>
-    </div>
   );
 }

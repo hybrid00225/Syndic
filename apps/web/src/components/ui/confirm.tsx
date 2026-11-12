@@ -10,7 +10,6 @@ import {
   useState,
 } from 'react';
 import { Button } from './button';
-import { cn } from '@/lib/utils';
 
 type Tone = 'danger' | 'primary' | 'warning';
 
@@ -28,12 +27,6 @@ export interface ConfirmOptions {
 
 type Ctx = (o: ConfirmOptions) => Promise<boolean>;
 const ConfirmContext = createContext<Ctx | null>(null);
-
-const toneBar: Record<Tone, string> = {
-  danger: 'bg-danger',
-  warning: 'bg-warning',
-  primary: 'bg-primary',
-};
 
 export function ConfirmProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<{
@@ -117,7 +110,6 @@ function Dialog({ opts, onClose }: { opts: ConfirmOptions; onClose: (v: boolean)
         onMouseDown={(e) => e.stopPropagation()}
         className="w-full max-w-md animate-pop-in overflow-hidden rounded-lg border border-border bg-card shadow-lift"
       >
-        <div aria-hidden className={cn('h-1', toneBar[tone])} />
         <div className="p-6">
           <h2 id={`${id}-t`} className="font-display text-xl font-medium">
             {opts.title}
@@ -126,7 +118,7 @@ function Dialog({ opts, onClose }: { opts: ConfirmOptions; onClose: (v: boolean)
             {opts.description}
           </p>
           {opts.nextAction && (
-            <p className="mt-4 border-l-2 border-border pl-3 text-sm">
+            <p className="mt-4 rounded-md bg-muted/60 px-3 py-2 text-sm">
               <span className="font-medium">Ensuite — </span>
               {opts.nextAction}
             </p>

@@ -9,6 +9,7 @@ interface RequeteAuditable {
   url: string;
   params?: Record<string, string>;
   user?: AuthUser;
+  coproprieteIdResolu?: string; // posé par TenantGuard (ressource parente)
 }
 
 @Injectable()
@@ -38,7 +39,7 @@ export class AuditService {
     await this.prisma.auditLog.create({
       data: {
         syndicId: user.syndicId,
-        coproprieteId: req.params?.coproprieteId ?? null,
+        coproprieteId: req.params?.coproprieteId ?? req.coproprieteIdResolu ?? null,
         userId: user.userId,
         entite,
         entiteId,

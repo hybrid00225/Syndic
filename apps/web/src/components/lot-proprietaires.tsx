@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Plus, Trash2, Users, X, Building, UserIcon } from 'lucide-react';
+import { Plus, Trash2, Users, Building, UserIcon } from 'lucide-react';
 import Link from 'next/link';
 import { api } from '@/lib/api';
 import { Table, THead, Th, Td, Tr } from '@/components/ui/table';
@@ -9,7 +9,9 @@ import { RowAction, RowActions } from '@/components/ui/list';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Input, Label } from '@/components/ui/input';
+import { Field, Input } from '@/components/ui/input';
+import { Modal, ModalActions } from '@/components/ui/modal';
+import { FormError } from '@/components/ui/alert';
 import { SearchSelect } from '@/components/ui/select';
 import { Tooltip } from '@/components/ui/tooltip';
 import { useConfirm } from '@/components/ui/confirm';
@@ -193,60 +195,50 @@ function AjoutModal({
     }
   };
 
+  const invalide = Number(num) > Number(den);
   return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm" onClick={onClose}>
-      <Card className="w-full max-w-md animate-fade-up" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between border-b border-border p-4">
-          <h3 className="font-semibold">Ajouter un propriétaire</h3>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
-            <X className="h-5 w-5" />
-          </button>
+    <Modal title="Ajouter un propriétaire" onClose={onClose}>
+      <form onSubmit={submit} className="space-y-4">
+        <Field label="Copropriétaire" required>
+          <SearchSelect
+            value={personneId}
+            onChange={setPersonneId}
+            options={personnes.map((p) => [p.id, nomP(p)] as const)}
+            allowEmpty
+            emptyLabel="— Choisir —"
+            placeholder="— Choisir —"
+          />
+        </Field>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Quote-part (num.)">
+            <Input type="number" min={1} value={num} onChange={(e) => setNum(e.target.value)} />
+          </Field>
+          <Field label="Quote-part (dén.)">
+            <Input type="number" min={1} value={den} onChange={(e) => setDen(e.target.value)} />
+          </Field>
         </div>
-        <form onSubmit={submit} className="space-y-4 p-4">
-          <div>
-            <Label>Copropriétaire *</Label>
-            <SearchSelect
-              value={personneId}
-              onChange={setPersonneId}
-              options={personnes.map((p) => [p.id, nomP(p)] as const)}
-              allowEmpty
-              emptyLabel="— Choisir —"
-              placeholder="— Choisir —"
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label>Quote-part (num.)</Label>
-              <Input type="number" min={1} value={num} onChange={(e) => setNum(e.target.value)} />
-            </div>
-            <div>
-              <Label>Quote-part (dén.)</Label>
-              <Input type="number" min={1} value={den} onChange={(e) => setDen(e.target.value)} />
-            </div>
-          </div>
-          <p className={cn('text-xs', Number(num) > Number(den) ? 'text-danger' : 'text-muted-foreground')}>
-            Part détenue : {num}/{den}
-            {Number(num) > Number(den) ? ' — invalide (ne peut dépasser 1)' : ''}
-          </p>
-          <div>
-            <Label>Nature du droit</Label>
-            <SearchSelect value={nature} onChange={setNature} options={NATURE_DROIT} />
-          </div>
-          <div>
-            <Label>Date de début *</Label>
-            <Input type="date" required value={dateDebut} onChange={(e) => setDateDebut(e.target.value)} />
-          </div>
+        <p className={cn('text-2xs', invalide ? 'text-danger' : 'text-muted-foreground')}>
+          Part détenue : {num}/{den}
+          {invalide ? ' — invalide (ne peut dépasser 1)' : ''}
+        </p>
+        <Field label="Nature du droit">
+          <SearchSelect value={nature} onChange={setNature} options={NATURE_DROIT} />
+        </Field>
+        <Field label="Date de début" required>
+          <Input type="date" required value={dateDebut} onChange={(e) => setDateDebut(e.target.value)} />
+        </Field>
 
-          {error && <p className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
+        <FormError error={error} />
 
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="secondary" onClick={onClose}>Annuler</Button>
-            <Button type="submit" disabled={loading || !personneId}>
-              {loading && <Spinner />} Ajouter
-            </Button>
-          </div>
-        </form>
-      </Card>
-    </div>
+        <ModalActions>
+          <Button variant="secondary" onClick={onClose}>
+            Annuler
+          </Button>
+          <Button type="submit" disabled={loading || !personneId || invalide}>
+            {loading && <Spinner />} Ajouter
+          </Button>
+        </ModalActions>
+      </form>
+    </Modal>
   );
 }

@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CoproprieteService } from '../copropriete/copropriete.service';
 import { CreateReglementDto } from './dto/create-reglement.dto';
@@ -16,6 +20,7 @@ export class ReglementService {
   // courantes. Une modification du règlement ne recalcule rien rétroactivement.
   async create(coproprieteId: string, dto: CreateReglementDto) {
     await this.coproprietes.ensureExists(coproprieteId);
+    await this.verifierDocument(coproprieteId, dto.documentId);
     const derniere = await this.prisma.reglementVersion.findFirst({
       where: { coproprieteId },
       orderBy: { version: 'desc' },
@@ -55,7 +60,8 @@ export class ReglementService {
   }
 
   async update(id: string, dto: UpdateReglementDto) {
-    await this.ensureExists(id);
+    const existante = await this.ensureExists(id);
+    await this.verifierDocument(existante.coproprieteId, dto.documentId);
     return this.prisma.reglementVersion.update({
       where: { id },
       data: {
@@ -105,6 +111,20 @@ export class ReglementService {
       }
     }
     return { id, supprime: true };
+  }
+
+  // Le document lié doit avoir été téléversé dans CETTE copropriété (isolation).
+  private async verifierDocument(coproprieteId: string, documentId?: string | null) {
+    if (!documentId) return;
+    const doc = await this.prisma.document.findFirst({
+      where: { id: documentId, coproprieteId },
+      select: { id: true },
+    });
+    if (!doc) {
+      throw new BadRequestException(
+        "Le document n'existe pas ou n'appartient pas à cette copropriété",
+      );
+    }
   }
 
   private async ensureExists(id: string) {

@@ -21,6 +21,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input, Field } from '@/components/ui/input';
 import { SearchSelect } from '@/components/ui/select';
+import { IconButton } from '@/components/ui/icon-button';
+import { Segmented } from '@/components/ui/segmented';
 import { Sheet } from '@/components/ui/sheet';
 import { Spinner, PageLoader } from '@/components/ui/spinner';
 import { useAlert, useConfirm } from '@/components/ui/confirm';
@@ -226,14 +228,7 @@ export function CoproprietairesCopro({ coproprieteId }: { coproprieteId: string 
                   </div>
                 </div>
               </div>
-              <button
-                type="button"
-                aria-label="Modifier le copropriétaire"
-                onClick={() => setEditOwner(o)}
-                className="flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
-              >
-                <Pencil className="h-4 w-4" />
-              </button>
+              <IconButton label="Modifier le copropriétaire" icon={Pencil} onClick={() => setEditOwner(o)} />
             </div>
 
             {o.representant && (
@@ -264,9 +259,7 @@ export function CoproprietairesCopro({ coproprieteId }: { coproprieteId: string 
                   </span>
                   <span className="flex items-center gap-2">
                     <span className="nums rounded bg-muted px-1.5 text-2xs">{d.quotePartNum}/{d.quotePartDen}</span>
-                    <button type="button" aria-label="Détacher ce lot" onClick={() => detacher(d)} className="text-muted-foreground hover:text-danger">
-                      <Unlink className="h-3.5 w-3.5" />
-                    </button>
+                    <IconButton label="Détacher ce lot" icon={Unlink} size="xs" tone="danger" onClick={() => detacher(d)} />
                   </span>
                 </li>
               ))}
@@ -431,10 +424,16 @@ function AttribuerSheet({
         </Field>
 
         <div>
-          <div className="mb-1.5 inline-flex rounded-md border border-border p-0.5 text-ui">
-            <Seg active={mode === 'existant'} onClick={() => setMode('existant')}>Copropriétaire existant</Seg>
-            <Seg active={mode === 'nouveau'} onClick={() => setMode('nouveau')}>Nouveau</Seg>
-          </div>
+          <Segmented
+            className="mb-1.5"
+            aria-label="Copropriétaire"
+            value={mode}
+            onChange={setMode}
+            options={[
+              ['existant', 'Copropriétaire existant'],
+              ['nouveau', 'Nouveau'],
+            ]}
+          />
           {mode === 'existant' ? (
             <Field label="Copropriétaire" required>
               <SearchSelect
@@ -587,14 +586,3 @@ function Tally({ label, value, warn }: { label: string; value: React.ReactNode; 
   );
 }
 
-function Seg({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn('rounded px-3 py-1.5 font-medium transition-colors', active ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground')}
-    >
-      {children}
-    </button>
-  );
-}

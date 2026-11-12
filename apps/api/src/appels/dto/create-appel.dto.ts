@@ -11,7 +11,10 @@ import {
   IsUUID,
   Min,
   ValidateNested,
+  Max,
+  ArrayMaxSize,
 } from 'class-validator';
+import { MONTANT_MAX } from '../../common/validation';
 import { AppelType } from '@prisma/client';
 
 export class PosteInputDto {
@@ -24,6 +27,7 @@ export class PosteInputDto {
 
   @IsInt()
   @Min(1)
+  @Max(MONTANT_MAX)
   montantARepartir: number; // entier (unité de la devise)
 }
 
@@ -47,5 +51,6 @@ export class CreateAppelDto {
   @ArrayNotEmpty()
   @ValidateNested({ each: true })
   @Type(() => PosteInputDto)
+  @ArrayMaxSize(200)
   postes: PosteInputDto[];
 }

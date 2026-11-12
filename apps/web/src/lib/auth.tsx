@@ -7,7 +7,8 @@ import {
   useEffect,
   useState,
 } from 'react';
-import { api, clearToken, getToken, setToken } from './api';
+import { useQueryClient } from '@tanstack/react-query';
+import { api, clearToken, getToken, setToken, SESSION_EXPIRED_EVENT } from './api';
 
 export interface AuthUser {
   id: string;
@@ -42,6 +43,18 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+
+  // Jeton expiré/révoqué (401) : on vide l'état et le cache (pas de fuite de
+  // données vers la session suivante) ; le layout redirige vers /login.
+  useEffect(() => {
+    const onExpired = () => {
+      queryClient.clear();
+      setUser(null);
+    };
+    window.addEventListener(SESSION_EXPIRED_EVENT, onExpired);
+    return () => window.removeEventListener(SESSION_EXPIRED_EVENT, onExpired);
+  }, [queryClient]);
 
   useEffect(() => {
     if (!getToken()) {
@@ -56,10 +69,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const handleAuth = useCallback(
     (token: string, u: AuthUser, remember: boolean) => {
+      queryClient.clear();
       setToken(token, remember);
       setUser(u);
     },
-    [],
+    [queryClient],
   );
 
   const login = useCallback(
@@ -86,8 +100,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = useCallback(() => {
     clearToken();
+    queryClient.clear();
     setUser(null);
-  }, []);
+  }, [queryClient]);
 
   return (
     <AuthContext.Provider value={{ user, loading, login, register, logout }}>

@@ -1,5 +1,7 @@
 @import '@fontsource-variable/hanken-grotesk';
 @import '@fontsource-variable/fraunces/opsz.css';
+@import '@fontsource-variable/inter';
+@import '@fontsource-variable/manrope';
 
 @tailwind base;
 @tailwind components;
@@ -45,6 +47,14 @@
     --ring: 160 48% 19%;
 
     --radius: 10px;
+
+    /* Navigation (menu latéral ou barre) — teinte « par défaut » = fond os. */
+    --nav: var(--background);
+    --nav-foreground: var(--foreground);
+    --nav-muted: var(--muted-foreground);
+    --nav-border: var(--border);
+    --nav-hover: var(--muted);
+    --nav-accent: var(--primary);
   }
 
   .dark {
@@ -71,6 +81,64 @@
     --border: 30 6% 18%;
     --input: 30 6% 26%;
     --ring: 152 34% 56%;
+  }
+
+  /* ---- Préférences d'affichage (panneau Paramètres, lib/preferences.ts) ---- */
+
+  /* Teintes de navigation. Les valeurs « .dark » des teintes neutres suivent
+     automatiquement les jetons de base ; les teintes pleines restent sombres. */
+  [data-nav-tone='card'] {
+    --nav: var(--card);
+  }
+  [data-nav-tone='forest'] {
+    --nav: 160 48% 19%;
+    --nav-foreground: 40 33% 97%;
+    --nav-muted: 150 18% 74%;
+    --nav-border: 160 32% 26%;
+    --nav-hover: 160 36% 24%;
+    --nav-accent: 40 60% 82%;
+  }
+  .dark[data-nav-tone='forest'] {
+    --nav: 160 34% 12%;
+    --nav-border: 160 26% 18%;
+    --nav-hover: 160 30% 17%;
+  }
+  [data-nav-tone='ink'] {
+    --nav: 30 12% 10%;
+    --nav-foreground: 40 18% 92%;
+    --nav-muted: 36 8% 64%;
+    --nav-border: 30 8% 18%;
+    --nav-hover: 30 8% 16%;
+    --nav-accent: 152 34% 60%;
+  }
+  .dark[data-nav-tone='ink'] {
+    --nav: 30 10% 4%;
+    --nav-border: 30 6% 13%;
+    --nav-hover: 30 6% 11%;
+  }
+
+  /* Police du texte */
+  [data-font='inter'] {
+    --font-sans: 'Inter Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  }
+  [data-font='manrope'] {
+    --font-sans: 'Manrope Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  }
+  [data-font='system'] {
+    --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  }
+
+  /* Police des titres : identique au texte */
+  [data-display='sans'] {
+    --font-display: var(--font-sans);
+  }
+
+  /* Arrondis */
+  [data-radius='sharp'] {
+    --radius: 7px;
+  }
+  [data-radius='round'] {
+    --radius: 14px;
   }
 
   * {

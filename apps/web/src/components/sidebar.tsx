@@ -4,13 +4,6 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  LayoutDashboard,
-  Home,
-  Building,
-  Building2,
-  Users,
-  ReceiptText,
-  AlertTriangle,
   LogOut,
   Search,
   PanelLeftClose,
@@ -19,38 +12,16 @@ import {
   Sun,
   Moon,
   Monitor,
+  X,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { useTheme, type ThemeMode } from '@/lib/theme';
+import { NAV_SECTIONS, isActive } from '@/lib/navigation';
 import { Wordmark } from '@/components/wordmark';
 import { Tooltip } from '@/components/ui/tooltip';
 import { useConfirm } from '@/components/ui/confirm';
 import { cn } from '@/lib/utils';
-
-type Item = { href: string; label: string; icon: typeof Home; soon?: boolean };
-
-const sections: { title: string; items: Item[] }[] = [
-  {
-    title: "Vue d'ensemble",
-    items: [{ href: '/dashboard', label: 'Tableau de bord', icon: LayoutDashboard }],
-  },
-  {
-    title: 'Patrimoine',
-    items: [
-      { href: '/coproprietes', label: 'Copropriétés', icon: Building },
-      { href: '/batiments', label: 'Bâtiments', icon: Building2 },
-      { href: '/lots', label: 'Lots', icon: Home },
-      { href: '/coproprietaires', label: 'Copropriétaires', icon: Users },
-    ],
-  },
-  {
-    title: 'Finances',
-    items: [
-      { href: '/appels', label: 'Appels de fonds', icon: ReceiptText, soon: true },
-      { href: '/impayes', label: 'Impayés', icon: AlertTriangle, soon: true },
-    ],
-  },
-];
+import { IconButton } from '@/components/ui/icon-button';
 
 const COLLAPSE_KEY = 'syndic_alpha_sidebar_collapsed';
 
@@ -60,23 +31,38 @@ export function initiales(nom?: string | null) {
   return ((parts[0]?.[0] ?? '') + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase();
 }
 
-export function Sidebar() {
+/**
+ * Menu latéral. `rail` : colonne fixe pliable (grand écran) ;
+ * `drawer` : contenu du tiroir mobile (jamais plié, se ferme à la navigation).
+ */
+export function Sidebar({
+  variant = 'rail',
+  onClose,
+  className,
+}: {
+  variant?: 'rail' | 'drawer';
+  onClose?: () => void;
+  className?: string;
+}) {
   const pathname = usePathname();
   const { user, logout } = useAuth();
   const confirm = useConfirm();
-  const [collapsed, setCollapsed] = useState(false);
+  const drawer = variant === 'drawer';
+  const [collapsedPref, setCollapsed] = useState(false);
+  const collapsed = !drawer && collapsedPref;
   const [query, setQuery] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const filterRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    if (drawer) return;
     try {
       setCollapsed(localStorage.getItem(COLLAPSE_KEY) === '1');
     } catch {
       /* ignore */
     }
-  }, []);
+  }, [drawer]);
 
   const setCollapse = (c: boolean) => {
     setCollapsed(c);
@@ -114,107 +100,122 @@ export function Sidebar() {
   };
 
   const q = query.trim().toLowerCase();
-  const filtered = sections
+  const filtered = NAV_SECTIONS
     .map((s) => ({ ...s, items: q ? s.items.filter((i) => i.label.toLowerCase().includes(q)) : s.items }))
     .filter((s) => s.items.length > 0);
 
   return (
     <aside
       className={cn(
-        'sticky top-0 z-40 flex h-screen shrink-0 flex-col border-r border-border bg-background transition-[width] duration-200',
-        collapsed ? 'w-[64px]' : 'w-60',
+        'z-40 flex shrink-0 flex-col bg-nav text-nav-foreground',
+        drawer
+          ? 'h-full w-72 max-w-[85vw]'
+          : 'sticky top-0 h-screen border-r border-nav-border transition-[width] duration-200',
+        !drawer && (collapsed ? 'w-[64px]' : 'w-60'),
+        className,
       )}
     >
       {/* En-tête */}
-      <div className={cn('flex h-16 items-center', collapsed ? 'justify-center' : 'justify-between pl-5 pr-2')}>
-        <Link href="/dashboard" aria-label="Syndic Alpha — tableau de bord" className="rounded-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
-          <Wordmark compact={collapsed} />
+      <div className={cn('flex h-16 items-center', collapsed ? 'justify-center' : 'justify-between pl-5 pr-3')}>
+        <Link
+          href="/dashboard"
+          onClick={onClose}
+          aria-label="Syndic Alpha — tableau de bord"
+          className="rounded-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-nav-accent"
+        >
+          <Wordmark tone="nav" compact={collapsed} />
         </Link>
-        {!collapsed && (
-          <Tooltip label="Replier le menu" side="bottom">
-            <button
-              type="button"
-              onClick={() => setCollapse(true)}
-              className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            >
-              <PanelLeftClose className="h-4 w-4" />
-            </button>
-          </Tooltip>
+        {drawer && (
+          <IconButton
+            label="Fermer le menu"
+            icon={X}
+            size="sm"
+            onClick={onClose}
+            className="text-nav-muted hover:bg-nav-hover hover:text-nav-foreground"
+          />
         )}
       </div>
+
+      {/* Plier / déplier : toujours au même endroit, à cheval sur la bordure du menu. */}
+      {!drawer && (
+      <div className="no-print absolute -right-3.5 top-[18px] z-10">
+        <IconButton
+          label={collapsed ? 'Déplier le menu' : 'Replier le menu'}
+          icon={collapsed ? PanelLeftOpen : PanelLeftClose}
+          size="sm"
+          tooltip="right"
+          aria-expanded={!collapsed}
+          iconClassName="h-3.5 w-3.5"
+          onClick={() => setCollapse(!collapsed)}
+          className="h-7 w-7 rounded-full border border-border bg-card shadow-soft hover:border-foreground/30 hover:bg-card"
+        />
+      </div>
+      )}
 
       {/* Filtre */}
       <div className={cn('pb-2', collapsed ? 'px-2' : 'px-3')}>
         {collapsed ? (
           <div className="flex flex-col items-center gap-1">
-            <Tooltip label="Déplier le menu" side="right">
-              <button
-                type="button"
-                onClick={() => setCollapse(false)}
-                className="flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              >
-                <PanelLeftOpen className="h-[18px] w-[18px]" />
-              </button>
-            </Tooltip>
-            <Tooltip label="Filtrer le menu" side="right">
-              <button
-                type="button"
-                onClick={() => {
-                  setCollapse(false);
-                  setTimeout(() => filterRef.current?.focus(), 220);
-                }}
-                className="flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              >
-                <Search className="h-[18px] w-[18px]" />
-              </button>
-            </Tooltip>
+            <IconButton
+              label="Filtrer le menu"
+              icon={Search}
+              tooltip="right"
+              iconClassName="h-[18px] w-[18px]"
+              className="text-nav-muted hover:bg-nav-hover hover:text-nav-foreground"
+              onClick={() => {
+                setCollapse(false);
+                setTimeout(() => filterRef.current?.focus(), 220);
+              }}
+            />
           </div>
         ) : (
           <div className="relative">
-            <Search aria-hidden className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Search aria-hidden className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-nav-muted" />
             <input
               ref={filterRef}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Filtrer le menu…"
               aria-label="Filtrer le menu"
-              className="h-9 w-full rounded-md border border-input bg-card pl-8 pr-3 text-ui placeholder:text-muted-foreground/70 focus-visible:border-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+              className="h-9 w-full rounded-md border border-nav-border bg-nav-hover/50 pl-8 pr-3 text-ui text-nav-foreground placeholder:text-nav-muted focus-visible:border-nav-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-nav-accent"
             />
           </div>
         )}
       </div>
 
       {/* Navigation */}
-      <nav aria-label="Navigation principale" className="flex-1 space-y-5 overflow-y-auto px-3 py-3">
-        {filtered.length === 0 && <p className="px-2 text-ui text-muted-foreground">Aucun résultat.</p>}
+      <nav aria-label="Navigation principale" className="flex-1 space-y-5 overflow-y-auto overflow-x-hidden px-3 py-3">
+        {filtered.length === 0 && <p className="px-2 text-ui text-nav-muted">Aucun résultat.</p>}
         {filtered.map((section, i) => (
           <div key={section.title}>
             {collapsed ? (
-              i > 0 && <div aria-hidden className="mx-auto mb-3 h-px w-6 bg-border" />
+              i > 0 && <div aria-hidden className="mx-auto mb-3 h-px w-6 bg-nav-border" />
             ) : (
-              <p className="px-2 pb-1.5 text-2xs font-medium text-muted-foreground">{section.title}</p>
+              <p className="px-2 pb-1.5 text-2xs font-medium text-nav-muted">{section.title}</p>
             )}
             <ul className="space-y-px">
               {section.items.map((item) => {
-                const active = pathname === item.href || pathname.startsWith(item.href + '/');
+                const active = isActive(pathname, item.href);
                 const Icon = item.icon;
                 const link = (
                   <Link
                     href={item.href}
+                    onClick={onClose}
                     aria-current={active ? 'page' : undefined}
                     aria-label={collapsed ? item.label : undefined}
                     className={cn(
-                      'relative flex items-center rounded-md text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
-                      collapsed ? 'mx-auto h-9 w-9 justify-center' : 'gap-2.5 px-2 py-1.5',
+                      'relative flex items-center rounded-md text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-nav-accent',
+                      collapsed ? 'mx-auto h-9 w-9 justify-center' : 'gap-2.5 px-2.5 py-1.5',
+                      // Actif : repère vertical + léger lavis de la teinte d'accent (pas de « carte »).
                       active
-                        ? 'bg-card font-medium text-foreground shadow-soft ring-1 ring-border'
-                        : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                        ? 'bg-nav-accent/10 font-medium text-nav-foreground before:absolute before:inset-y-1.5 before:left-0 before:w-[3px] before:rounded-full before:bg-nav-accent'
+                        : 'text-nav-muted hover:bg-nav-hover hover:text-nav-foreground',
                     )}
                   >
-                    <Icon aria-hidden className={cn('h-4 w-4 shrink-0', active && 'text-primary')} />
+                    <Icon aria-hidden className={cn('h-4 w-4 shrink-0', active && 'text-nav-accent')} />
                     {!collapsed && <span className="flex-1">{item.label}</span>}
                     {!collapsed && item.soon && (
-                      <span className="text-2xs text-muted-foreground/80">bientôt</span>
+                      <span className="text-2xs text-nav-muted/80">bientôt</span>
                     )}
                   </Link>
                 );
@@ -236,7 +237,7 @@ export function Sidebar() {
       </nav>
 
       {/* Pied : menu utilisateur */}
-      <div className="border-t border-border p-2" ref={menuRef}>
+      <div className="border-t border-nav-border p-2" ref={menuRef}>
         <div className="relative">
           <button
             type="button"
@@ -245,22 +246,22 @@ export function Sidebar() {
             aria-expanded={menuOpen}
             aria-label={collapsed ? 'Menu du compte' : undefined}
             className={cn(
-              'flex w-full items-center gap-2.5 rounded-md p-1.5 text-left transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
+              'flex w-full items-center gap-2.5 rounded-md p-1.5 text-left transition-colors hover:bg-nav-hover focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-nav-accent',
               collapsed && 'justify-center',
             )}
           >
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-foreground text-2xs font-semibold text-background">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-nav-foreground text-2xs font-semibold text-nav">
               {initiales(user?.nom)}
             </span>
             {!collapsed && (
               <>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-ui font-medium">{user?.nom}</span>
-                  <span className="block truncate text-2xs text-muted-foreground">
+                  <span className="block truncate text-2xs text-nav-muted">
                     {user?.adminSyndic ? 'Administrateur' : 'Gestionnaire'}
                   </span>
                 </span>
-                <ChevronsUpDown aria-hidden className="h-4 w-4 text-muted-foreground" />
+                <ChevronsUpDown aria-hidden className="h-4 w-4 text-nav-muted" />
               </>
             )}
           </button>

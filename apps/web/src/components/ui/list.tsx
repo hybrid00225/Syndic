@@ -74,9 +74,12 @@ export function ListToolbar({
   count,
   view,
   onViewChange,
+  tools,
 }: {
   search: React.ReactNode;
   children?: React.ReactNode;
+  /** Outils d'affichage à droite (ex. menu des colonnes). */
+  tools?: React.ReactNode;
   hasFilters?: boolean;
   onReset?: () => void;
   count: number;
@@ -93,6 +96,7 @@ export function ListToolbar({
         </Button>
       )}
       <div className="ml-auto flex items-center gap-5">
+        {tools}
         <span className="nums text-ui text-muted-foreground" aria-live="polite">
           {count} résultat{count > 1 ? 's' : ''}
         </span>

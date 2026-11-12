@@ -10,7 +10,10 @@ import {
   IsUUID,
   Min,
   ValidateNested,
+  Max,
+  ArrayMaxSize,
 } from 'class-validator';
+import { SUPERFICIE_MAX } from '../../../common/validation';
 import { LotStatut, LotType } from '@prisma/client';
 
 // Données d'un nouveau lot créé par fusion ou subdivision.
@@ -29,6 +32,7 @@ export class LotNouveauInput {
   @IsNumber()
   @Min(0)
   @IsOptional()
+  @Max(SUPERFICIE_MAX)
   superficie?: number;
 
   @IsEnum(LotStatut)
@@ -65,6 +69,7 @@ export class FusionLotDto {
   @IsArray()
   @ArrayMinSize(2)
   @IsUUID('all', { each: true })
+  @ArrayMaxSize(100)
   sourceLotIds: string[];
 
   @ValidateNested()
@@ -78,5 +83,6 @@ export class SubdivisionLotDto {
   @ArrayMinSize(2)
   @ValidateNested({ each: true })
   @Type(() => LotNouveauInput)
+  @ArrayMaxSize(100)
   nouveaux: LotNouveauInput[];
 }

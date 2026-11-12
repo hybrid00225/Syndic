@@ -9,16 +9,23 @@ import { UserController } from './user.controller';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { TenantGuard } from './guards/tenant.guard';
 import { RolesGuard } from './guards/roles.guard';
+import { ThrottlerGuard } from '@nestjs/throttler';
 
-// Les gardes sont enregistrées ici (APP_GUARD = globales). Ordre : JWT → Tenant → Roles.
+// Les gardes sont enregistrées ici (APP_GUARD = globales), dans cet ordre :
+// Throttler (avant toute requête en base) → JWT → Tenant → Roles.
 @Module({
   imports: [
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
+      // Secret validé au démarrage (config/env.ts). Algorithme imposé : HS256.
       useFactory: (config: ConfigService) => ({
-        secret: config.get<string>('JWT_SECRET'),
-        signOptions: { expiresIn: config.get<string>('JWT_EXPIRES_IN') ?? '7d' },
+        secret: config.getOrThrow<string>('JWT_SECRET'),
+        signOptions: {
+          algorithm: 'HS256',
+          expiresIn: config.get<string>('JWT_EXPIRES_IN') || '12h',
+        },
+        verifyOptions: { algorithms: ['HS256'] },
       }),
     }),
   ],
@@ -26,6 +33,7 @@ import { RolesGuard } from './guards/roles.guard';
   providers: [
     AuthService,
     UserService,
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: TenantGuard },
     { provide: APP_GUARD, useClass: RolesGuard },

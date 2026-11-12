@@ -9,11 +9,15 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
+import { RoleType } from '@prisma/client';
 import { BatimentService } from './batiment.service';
 import { CreateBatimentDto } from './dto/create-batiment.dto';
 import { UpdateBatimentDto } from './dto/update-batiment.dto';
-import { CurrentUser } from '../../auth/decorators';
-import { AuthUser } from '../../auth/auth-user.interface';
+import { CurrentUser, Roles } from '../../auth/decorators';
+import {
+  AuthUser,
+  perimetreCoproprietes,
+} from '../../auth/auth-user.interface';
 
 @Controller()
 export class BatimentController {
@@ -25,9 +29,14 @@ export class BatimentController {
     @CurrentUser() user: AuthUser,
     @Query('coproprieteId') coproprieteId?: string,
   ) {
-    return this.service.findAllBySyndic(user.syndicId, coproprieteId);
+    return this.service.findAllBySyndic(
+      user.syndicId,
+      coproprieteId,
+      perimetreCoproprietes(user),
+    );
   }
 
+  @Roles(RoleType.GESTIONNAIRE)
   @Post('coproprietes/:coproprieteId/batiments')
   create(
     @Param('coproprieteId', ParseUUIDPipe) coproprieteId: string,
@@ -41,6 +50,7 @@ export class BatimentController {
     return this.service.findAll(coproprieteId);
   }
 
+  @Roles(RoleType.GESTIONNAIRE)
   @Patch('batiments/:id')
   update(
     @Param('id', ParseUUIDPipe) id: string,
@@ -49,6 +59,7 @@ export class BatimentController {
     return this.service.update(id, dto);
   }
 
+  @Roles(RoleType.GESTIONNAIRE)
   @Delete('batiments/:id')
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.service.remove(id);

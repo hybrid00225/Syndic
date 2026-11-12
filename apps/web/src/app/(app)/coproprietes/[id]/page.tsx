@@ -9,8 +9,13 @@ import {
   Building2,
   Home,
   Coins,
-  Layers,
   Users,
+  IdCard,
+  MapPin,
+  Briefcase,
+  CalendarClock,
+  Ruler,
+  Plus,
   Wallet,
   FileText,
   Hammer,
@@ -24,6 +29,8 @@ import { Badge } from '@/components/ui/badge';
 import { Ledger, Stat, Composition } from '@/components/ui/stat';
 import { useConfirm } from '@/components/ui/confirm';
 import { PageLoader } from '@/components/ui/spinner';
+import { Tabs } from '@/components/ui/tabs';
+import { CountryLabel } from '@/components/ui/country';
 import { PageHeader } from '@/components/page-header';
 import { BatimentsLots } from '@/components/batiments-lots';
 import { RepartitionCles } from '@/components/repartition-cles';
@@ -43,6 +50,7 @@ interface Lot {
   reference: string;
   type: string;
   statut: string;
+  superficie: string | null;
 }
 interface Copropriete {
   id: string;
@@ -140,7 +148,12 @@ export default function CoproprieteDetailPage() {
           { label: copro.nom },
         ]}
         title={copro.nom}
-        subtitle={copro.adresse ?? copro.pays}
+        subtitle={
+          <span className="inline-flex flex-wrap items-center gap-x-2">
+            <CountryLabel code={copro.pays} />
+            {copro.adresse && <span>· {copro.adresse}</span>}
+          </span>
+        }
         actions={
           <>
             <Button variant="secondary" onClick={archiver}>
@@ -195,91 +208,92 @@ export default function CoproprieteDetailPage() {
       </Ledger>
 
       {/* Onglets */}
-      <div role="tablist" aria-label="Sections de la copropriété" className="no-print flex gap-1 overflow-x-auto border-b border-border">
-        {TABS.map((t) => {
-          const Icon = t.icon;
-          return (
-            <button
-              key={t.key}
-              onClick={() => changerOnglet(t.key)}
-              role="tab"
-              aria-selected={tab === t.key}
-              className={cn(
-                '-mb-px flex items-center gap-2 whitespace-nowrap border-b-2 px-4 py-2.5 text-sm font-medium transition-colors',
-                tab === t.key
-                  ? 'border-primary text-foreground'
-                  : 'border-transparent text-muted-foreground hover:text-foreground',
-              )}
-            >
-              <Icon className="h-4 w-4" />
-              {t.label}
-              {(t.key === 'batiments' || t.key === 'lots') && (
-                <span className="nums rounded-full bg-muted px-1.5 text-2xs text-muted-foreground">
-                  {t.key === 'batiments' ? copro.batiments.length : lots.length}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
+      <Tabs
+        aria-label="Sections de la copropriété"
+        className="no-print"
+        value={tab}
+        onChange={changerOnglet}
+        items={TABS.map((t) => ({
+          key: t.key,
+          label: t.label,
+          icon: t.icon,
+          count:
+            t.key === 'batiments' ? copro.batiments.length : t.key === 'lots' ? lots.length : undefined,
+        }))}
+      />
 
       {tab === 'infos' && (
         <div className="grid gap-5 lg:grid-cols-3">
-          <Card className="p-5 lg:col-span-2">
-            <h2 className="text-sm font-semibold">Informations générales</h2>
-            <dl className="mt-4 grid gap-x-8 gap-y-3 text-sm sm:grid-cols-2">
-              <Info label="Référence" value={copro.reference ?? '—'} />
-              <Info label="Type" value={LABELS[copro.type] ?? copro.type} />
-              <Info label="Pays" value={copro.pays} />
-              <Info label="Ensemble immobilier" value={copro.ensembleImmobilier ?? '—'} />
-              <Info label="Adresse" value={copro.adresse ?? '—'} />
-              <Info label="Devise" value={copro.devise} />
-              <Info label="Administration" value={LABELS[copro.natureSyndic] ?? copro.natureSyndic} />
-              <Info label="Mode de répartition" value={LABELS[copro.modeRepartition] ?? copro.modeRepartition} />
-              <Info
-                label="Statut"
-                value={
-                  <Badge tone={statutTone[copro.statut] ?? 'neutral'} dot>
-                    {STATUT_COPRO[copro.statut] ?? copro.statut}
-                  </Badge>
-                }
-              />
-              <Info label="Créée le" value={formatDate(copro.dateCreation)} />
-              <Info
-                label="Mise en exploitation"
-                value={
-                  copro.dateMiseExploitation
-                    ? formatDate(copro.dateMiseExploitation)
-                    : '—'
-                }
-              />
-            </dl>
+          <Card className="overflow-hidden lg:col-span-2">
+            <div className="grid sm:grid-cols-2">
+              <InfoSection icon={IdCard} title="Identité">
+                <Info label="Référence" value={copro.reference ?? '—'} />
+                <Info label="Type" value={LABELS[copro.type] ?? copro.type} />
+                <Info label="Ensemble immobilier" value={copro.ensembleImmobilier ?? '—'} />
+              </InfoSection>
+              <InfoSection icon={MapPin} title="Localisation">
+                <Info label="Pays" value={<CountryLabel code={copro.pays} />} />
+                <Info label="Adresse" value={copro.adresse ?? '—'} />
+              </InfoSection>
+              <InfoSection icon={Briefcase} title="Gestion">
+                <Info label="Administration" value={LABELS[copro.natureSyndic] ?? copro.natureSyndic} />
+                <Info label="Répartition" value={LABELS[copro.modeRepartition] ?? copro.modeRepartition} />
+                <Info label="Devise" value={copro.devise} />
+              </InfoSection>
+              <InfoSection icon={CalendarClock} title="Cycle de vie">
+                <Info
+                  label="Statut"
+                  value={
+                    <Badge tone={statutTone[copro.statut] ?? 'neutral'} dot>
+                      {STATUT_COPRO[copro.statut] ?? copro.statut}
+                    </Badge>
+                  }
+                />
+                <Info label="Créée le" value={formatDate(copro.dateCreation)} />
+                <Info
+                  label="Mise en exploitation"
+                  value={copro.dateMiseExploitation ? formatDate(copro.dateMiseExploitation) : '—'}
+                />
+              </InfoSection>
+            </div>
             {copro.description && (
-              <div className="mt-4 border-t border-border pt-4">
-                <p className="text-xs font-medium text-muted-foreground">Description</p>
-                <p className="mt-1 text-sm">{copro.description}</p>
+              <div className="border-t border-border px-5 py-4">
+                <h3 className="text-2xs font-medium uppercase tracking-wide text-muted-foreground">Description</h3>
+                <p className="mt-1.5 whitespace-pre-line text-sm">{copro.description}</p>
               </div>
             )}
           </Card>
 
-          <Card className="p-5">
-            <h2 className="text-sm font-semibold">Résumé</h2>
-            <ul className="mt-3 space-y-2.5 text-sm">
-              <SummaryRow icon={Building2} label="Bâtiments" value={copro.batiments.length} />
-              <SummaryRow icon={Home} label="Lots" value={lots.length} />
-              <SummaryRow icon={Coins} label="Devise" value={copro.devise} />
-              <SummaryRow
-                icon={Layers}
-                label="Type"
-                value={LABELS[copro.type] ?? copro.type}
-              />
-            </ul>
+          <Card className="flex flex-col">
+            <div className="p-5">
+              <h2 className="text-sm font-semibold">En bref</h2>
+              <ul className="mt-3 space-y-2.5 text-sm">
+                <SummaryRow icon={Building2} label="Bâtiments" value={copro.batiments.length} />
+                <SummaryRow icon={Home} label="Lots" value={lots.length} />
+                <SummaryRow icon={Ruler} label="Surface des lots" value={surfaceTotale(lots)} />
+              </ul>
+            </div>
+            <div className="mt-auto space-y-1 border-t border-border p-3">
+              <Button asChild variant="ghost" size="sm" className="w-full justify-start">
+                <Link href={`/coproprietes/${copro.id}/modifier`}>
+                  <Pencil className="h-4 w-4" /> Modifier la fiche
+                </Link>
+              </Button>
+              <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => changerOnglet('batiments')}>
+                <Building2 className="h-4 w-4" /> Gérer les bâtiments
+              </Button>
+              <Button asChild variant="ghost" size="sm" className="w-full justify-start">
+                <Link href={`/coproprietes/${copro.id}/lots/nouveau`}>
+                  <Plus className="h-4 w-4" /> Nouveau lot
+                </Link>
+              </Button>
+            </div>
           </Card>
         </div>
       )}
 
       {(tab === 'batiments' || tab === 'lots') && (
-        <BatimentsLots coproprieteId={id} view={tab} onViewChange={changerOnglet} />
+        <BatimentsLots coproprieteId={id} coproprieteNom={copro.nom} view={tab} onViewChange={changerOnglet} />
       )}
 
       {tab === 'operations' && <LotOperations coproprieteId={id} />}
@@ -309,13 +323,41 @@ export default function CoproprieteDetailPage() {
   );
 }
 
+/** Bloc thématique de la fiche (titre + lignes « libellé — valeur »). */
+function InfoSection({
+  icon: Icon,
+  title,
+  children,
+}: {
+  icon: typeof Home;
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="border-b border-border p-5 sm:[&:nth-child(odd)]:border-r sm:[&:nth-last-child(-n+2)]:border-b-0 [&:last-child]:border-b-0">
+      <h3 className="flex items-center gap-2 text-2xs font-medium uppercase tracking-wide text-muted-foreground">
+        <Icon aria-hidden className="h-3.5 w-3.5" />
+        {title}
+      </h3>
+      <dl className="mt-3 space-y-2.5 text-sm">{children}</dl>
+    </section>
+  );
+}
+
+// Libellé à largeur fixe, valeur juste à côté (lecture directe, pas de grand vide).
 function Info({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="flex items-center justify-between gap-3">
+    <div className="grid grid-cols-[9.5rem_minmax(0,1fr)] items-baseline gap-3">
       <dt className="text-muted-foreground">{label}</dt>
-      <dd className="text-right font-medium">{value}</dd>
+      <dd className="min-w-0 break-words font-medium">{value}</dd>
     </div>
   );
+}
+
+/** Somme des superficies renseignées (« — » si aucune). */
+function surfaceTotale(lots: Lot[]) {
+  const total = lots.reduce((s, l) => s + (l.superficie ? Number(l.superficie) : 0), 0);
+  return total > 0 ? `${total.toLocaleString('fr-FR', { maximumFractionDigits: 2 })} m²` : '—';
 }
 
 function SummaryRow({

@@ -15,6 +15,8 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input, Textarea, Field } from '@/components/ui/input';
+import { Modal } from '@/components/ui/modal';
+import { IconButton } from '@/components/ui/icon-button';
 import { SearchSelect } from '@/components/ui/select';
 import { Spinner, PageLoader } from '@/components/ui/spinner';
 import { useAlert, useConfirm } from '@/components/ui/confirm';
@@ -213,14 +215,14 @@ function PartiesCommunes({
                   · {pc._count.equipements} équip.
                 </span>
               )}
-              <button
-                type="button"
-                aria-label={`Supprimer ${pc.nom}`}
+              <IconButton
+                label={`Supprimer ${pc.nom}`}
+                icon={X}
+                size="xs"
+                tone="danger"
+                revealOnHover
                 onClick={() => supprimer(pc)}
-                className="ml-1 text-muted-foreground opacity-0 transition hover:text-danger group-hover:opacity-100"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
+              />
             </li>
           ))}
         </ul>
@@ -379,18 +381,24 @@ function Equipements({
 
       {/* Formulaire création/édition */}
       {form && (
-        <div className="mt-4 rounded-md border border-border bg-muted/30 p-4">
-          <div className="flex items-center justify-between">
-            <h4 className="text-ui font-semibold">
-              {form.id ? "Modifier l'équipement" : 'Nouvel équipement'}
-            </h4>
-            <button type="button" aria-label="Fermer" onClick={() => setForm(null)} className="text-muted-foreground hover:text-foreground">
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <Modal
+          size="xl"
+          title={form.id ? "Modifier l'équipement" : 'Nouvel équipement'}
+          onClose={() => setForm(null)}
+          footer={
+            <>
+              <Button variant="secondary" onClick={() => setForm(null)}>
+                Annuler
+              </Button>
+              <Button onClick={enregistrer} disabled={saving || !form.nom.trim() || !form.reference.trim()}>
+                {saving && <Spinner />} {form.id ? 'Enregistrer' : 'Créer'}
+              </Button>
+            </>
+          }
+        >
+          <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Nom" required>
-              <Input autoFocus value={form.nom} onChange={(e) => setForm({ ...form, nom: e.target.value })} placeholder="Ascenseur A" />
+              <Input value={form.nom} onChange={(e) => setForm({ ...form, nom: e.target.value })} placeholder="Ascenseur A" />
             </Field>
             <Field label="Catégorie" required>
               <SearchSelect value={form.categorie} onChange={(v) => setForm({ ...form, categorie: v })} options={EQUIPEMENT_CATEGORIES} />
@@ -431,23 +439,15 @@ function Equipements({
                 emptyLabel="Non située"
               />
             </Field>
-            <Field className="sm:col-span-2 lg:col-span-3" label="Notes">
+            <Field className="sm:col-span-2" label="Notes">
               <Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={2} />
             </Field>
           </div>
-          <div className="mt-4 flex gap-2">
-            <Button onClick={enregistrer} disabled={saving || !form.nom.trim() || !form.reference.trim()}>
-              {saving && <Spinner />} {form.id ? 'Enregistrer' : 'Créer'}
-            </Button>
-            <Button variant="ghost" onClick={() => setForm(null)}>
-              Annuler
-            </Button>
-          </div>
-        </div>
+        </Modal>
       )}
 
       {/* Tableau */}
-      {equipements.length === 0 && !form ? (
+      {equipements.length === 0 ? (
         <div className="mt-4">
           <EmptyState
             title="Aucun équipement"
@@ -509,12 +509,8 @@ function Equipements({
                     </Td>
                     <Td>
                       <div className="flex items-center justify-end gap-1">
-                        <button type="button" aria-label="Modifier" onClick={() => ouvrirEdition(e)} className="flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground">
-                          <Pencil className="h-4 w-4" />
-                        </button>
-                        <button type="button" aria-label="Supprimer" onClick={() => supprimer(e)} className="flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground hover:bg-danger/10 hover:text-danger">
-                          <Trash2 className="h-4 w-4" />
-                        </button>
+                        <IconButton label="Modifier" icon={Pencil} onClick={() => ouvrirEdition(e)} />
+                        <IconButton label="Supprimer" icon={Trash2} tone="danger" onClick={() => supprimer(e)} />
                       </div>
                     </Td>
                   </Tr>

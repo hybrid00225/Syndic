@@ -15,10 +15,13 @@ import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input, Textarea, Field, Label } from '@/components/ui/input';
 import { SearchSelect } from '@/components/ui/select';
+import { CountryLabel, CountrySelect } from '@/components/ui/country';
 import { Spinner } from '@/components/ui/spinner';
+import { IconButton } from '@/components/ui/icon-button';
+import { Segmented } from '@/components/ui/segmented';
+import { FormError } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
 import {
-  PAYS,
   TYPES_COPRO,
   NATURE_SYNDIC,
   DEVISES,
@@ -244,7 +247,7 @@ export function CoproWizard() {
 
           <Section title="Localisation" hint="Sert aux documents et aux correspondances.">
             <Field label="Pays" required hint="Cadre par défaut — aucune restriction de marché.">
-              <SearchSelect value={copro.pays} onChange={(v) => setC('pays', v)} options={PAYS} />
+              <CountrySelect value={copro.pays} onChange={(v) => setC('pays', v)} />
             </Field>
             <Field label="Ensemble immobilier" hint="Si la copropriété fait partie d'un ensemble plus vaste.">
               <Input value={copro.ensembleImmobilier} onChange={(e) => setC('ensembleImmobilier', e.target.value)} placeholder="Cité des Palmiers" />
@@ -297,14 +300,16 @@ export function CoproWizard() {
             {/* Avec ou sans bâtiments */}
             <div className="mt-4">
               <Label>Cette copropriété comporte-t-elle des bâtiments&nbsp;?</Label>
-              <div className="mt-1.5 inline-flex rounded-md border border-border p-0.5">
-                <Segment active={!avecBatiments} onClick={() => setAvecBatiments(false)}>
-                  Sans bâtiment
-                </Segment>
-                <Segment active={avecBatiments} onClick={() => setAvecBatiments(true)}>
-                  Avec bâtiments
-                </Segment>
-              </div>
+              <Segmented
+                className="mt-1.5"
+                aria-label="Bâtiments"
+                value={avecBatiments ? 'avec' : 'sans'}
+                onChange={(v) => setAvecBatiments(v === 'avec')}
+                options={[
+                  ['sans', 'Sans bâtiment'],
+                  ['avec', 'Avec bâtiments'],
+                ]}
+              />
               <p className="mt-1.5 text-2xs text-muted-foreground">
                 {avecBatiments
                   ? 'Les lots seront répartis par bâtiment et par niveau.'
@@ -365,14 +370,14 @@ export function CoproWizard() {
                         <Button type="button" variant="ghost" size="sm" onClick={() => addNiveau(bi)}>
                           <Plus className="h-4 w-4" /> Niveau
                         </Button>
-                        <IconBtn label="Supprimer le bâtiment" onClick={() => removeBatiment(bi)} />
+                        <IconButton label="Supprimer le bâtiment" icon={Trash2} tone="danger" className="h-10 w-10" onClick={() => removeBatiment(bi)} />
                       </div>
                       {b.niveaux.length > 0 && (
                         <div className="mt-2.5 space-y-2 border-l border-border pl-4">
                           {b.niveaux.map((n, ni) => (
                             <div key={ni} className="flex items-center gap-2">
                               <Input value={n.nom} onChange={(e) => setNivNom(bi, ni, e.target.value)} placeholder={niveauNom(ni)} className="flex-1" />
-                              <IconBtn label="Supprimer le niveau" onClick={() => removeNiveau(bi, ni)} />
+                              <IconButton label="Supprimer le niveau" icon={Trash2} tone="danger" className="h-10 w-10" onClick={() => removeNiveau(bi, ni)} />
                             </div>
                           ))}
                         </div>
@@ -438,7 +443,7 @@ export function CoproWizard() {
                         emptyLabel="Sans niveau"
                         disabled={l.batimentIndex === ''}
                       />
-                      <IconBtn label="Supprimer le lot" onClick={() => removeLot(i)} />
+                      <IconButton label="Supprimer le lot" icon={Trash2} tone="danger" className="h-10 w-10" onClick={() => removeLot(i)} />
                     </div>
                   </div>
                 );
@@ -455,7 +460,7 @@ export function CoproWizard() {
           <dl className="mt-4 grid gap-x-10 gap-y-0 text-ui sm:grid-cols-2">
             <Reca label="Nom" value={copro.nom || '—'} />
             <Reca label="Type" value={TYPES_COPRO.find((t) => t[0] === copro.type)?.[1] ?? copro.type} />
-            <Reca label="Pays" value={PAYS.find((p) => p[0] === copro.pays)?.[1] ?? copro.pays} />
+            <Reca label="Pays" value={<CountryLabel code={copro.pays} />} />
             <Reca label="Devise" value={copro.devise} />
             <Reca label="Répartition" value={MODES_REPARTITION.find((m) => m[0] === copro.modeRepartition)?.[1] ?? copro.modeRepartition} />
             <Reca label="Administration" value={NATURE_SYNDIC.find((n) => n[0] === copro.natureSyndic)?.[1] ?? copro.natureSyndic} />
@@ -474,7 +479,7 @@ export function CoproWizard() {
               </span>
             </div>
           )}
-          {error && <p className="mt-4 rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-ui text-danger">{error}</p>}
+          <FormError error={error} className="mt-4" />
         </div>
       )}
 
@@ -552,40 +557,11 @@ function Section({ title, hint, children }: { title: string; hint?: string; chil
   );
 }
 
-function Segment({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        'rounded px-3 py-1.5 text-ui font-medium transition-colors',
-        active ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground',
-      )}
-    >
-      {children}
-    </button>
-  );
-}
-
-function IconBtn({ label, onClick }: { label: string; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={label}
-      title={label}
-      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-danger/10 hover:text-danger"
-    >
-      <Trash2 className="h-4 w-4" />
-    </button>
-  );
-}
-
 function Hint({ children, className }: { children: React.ReactNode; className?: string }) {
   return <p className={cn('text-ui text-muted-foreground', className)}>{children}</p>;
 }
 
-function Reca({ label, value }: { label: string; value: string }) {
+function Reca({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between gap-3 border-b border-border py-2">
       <dt className="text-muted-foreground">{label}</dt>

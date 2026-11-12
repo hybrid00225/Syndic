@@ -27,6 +27,7 @@ export function SearchSelect({
   id: idProp,
   'aria-label': ariaLabel,
   size = 'md',
+  renderIcon,
 }: {
   value: string;
   onChange: (v: string) => void;
@@ -40,6 +41,8 @@ export function SearchSelect({
   id?: string;
   'aria-label'?: string;
   size?: 'sm' | 'md';
+  /** Visuel devant le libellé (ex. drapeau du pays), dans la liste et le champ. */
+  renderIcon?: (value: string) => React.ReactNode;
 }) {
   const autoId = useId();
   const fieldId = useFieldId();
@@ -143,8 +146,9 @@ export function SearchSelect({
           open && 'border-primary ring-1 ring-primary',
         )}
       >
-        <span className={cn('truncate', !selected && 'text-muted-foreground')}>
-          {selected ? selected[1] : placeholder}
+        <span className={cn('flex min-w-0 items-center gap-2', !selected && 'text-muted-foreground')}>
+          {selected && selected[0] !== '' && renderIcon?.(selected[0])}
+          <span className="truncate">{selected ? selected[1] : placeholder}</span>
         </span>
         <ChevronDown
           aria-hidden
@@ -195,7 +199,10 @@ export function SearchSelect({
                     o[0] === '' && 'text-muted-foreground',
                   )}
                 >
-                  {o[1]}
+                  <span className="flex min-w-0 items-center gap-2">
+                    {o[0] !== '' && renderIcon?.(o[0])}
+                    <span className="truncate">{o[1]}</span>
+                  </span>
                   {isSel && <Check aria-hidden className="h-4 w-4 shrink-0 text-primary" />}
                 </div>
               );

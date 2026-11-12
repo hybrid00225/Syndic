@@ -37,6 +37,7 @@ export class PaiementController {
     return this.service.findOne(id);
   }
 
+  @Roles(RoleType.CAISSIER, RoleType.COMPTABLE)
   @Post('paiements/:paiementId/affectations')
   affecter(
     @Param('paiementId', ParseUUIDPipe) paiementId: string,
@@ -45,11 +46,13 @@ export class PaiementController {
     return this.service.affecter(paiementId, dto);
   }
 
+  @Roles(RoleType.CAISSIER, RoleType.COMPTABLE)
   @Delete('affectations/:id')
   desaffecter(@Param('id', ParseUUIDPipe) id: string) {
     return this.service.desaffecter(id);
   }
 
+  @Roles(RoleType.CAISSIER, RoleType.COMPTABLE)
   @Patch('paiements/:id/annuler')
   annuler(@Param('id', ParseUUIDPipe) id: string) {
     return this.service.annuler(id);

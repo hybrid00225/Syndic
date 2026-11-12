@@ -17,6 +17,7 @@ export class PersonneService {
 
   async create(dto: CreatePersonneDto, syndicId: string) {
     (dto.contacts ?? []).forEach((c) => this.validerContact(c));
+    await this.verifierRepresentant(syndicId, dto.representantId);
 
     return this.prisma.personne.create({
       data: {
@@ -65,9 +66,9 @@ export class PersonneService {
     return personnes;
   }
 
-  findAll(syndicId?: string) {
+  findAll(syndicId: string) {
     return this.prisma.personne.findMany({
-      where: syndicId ? { syndicId } : undefined,
+      where: { syndicId },
       include: {
         contacts: true,
         _count: { select: { detentions: true } },
@@ -108,8 +109,12 @@ export class PersonneService {
 
   // Met à jour l'identité et, si fournis, remplace les contacts.
   async update(id: string, dto: UpdatePersonneDto) {
-    await this.ensureExists(id);
+    const personne = await this.ensureExists(id);
     (dto.contacts ?? []).forEach((c) => this.validerContact(c));
+    if (dto.representantId === id) {
+      throw new BadRequestException('Une personne ne peut pas se représenter elle-même');
+    }
+    await this.verifierRepresentant(personne.syndicId, dto.representantId);
     const { contacts, ...identite } = dto;
 
     if (contacts) {
@@ -162,10 +167,23 @@ export class PersonneService {
   async ensureExists(id: string) {
     const exists = await this.prisma.personne.findUnique({
       where: { id },
-      select: { id: true },
+      select: { id: true, syndicId: true },
     });
     if (!exists) {
       throw new NotFoundException(`Personne ${id} introuvable`);
+    }
+    return exists;
+  }
+
+  // Le représentant doit appartenir au même syndic (isolation multi-tenant).
+  private async verifierRepresentant(syndicId: string, representantId?: string | null) {
+    if (!representantId) return;
+    const rep = await this.prisma.personne.findFirst({
+      where: { id: representantId, syndicId },
+      select: { id: true },
+    });
+    if (!rep) {
+      throw new BadRequestException(`Représentant ${representantId} introuvable`);
     }
   }
 

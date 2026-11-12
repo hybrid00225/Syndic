@@ -6,7 +6,9 @@ import {
   IsString,
   IsUUID,
   Min,
+  Max,
 } from 'class-validator';
+import { SUPERFICIE_MAX } from '../../../common/validation';
 import { LotType, LotStatut } from '@prisma/client';
 
 export class UpdateLotDto {
@@ -26,6 +28,7 @@ export class UpdateLotDto {
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
   @IsOptional()
+  @Max(SUPERFICIE_MAX)
   superficie?: number;
 
   @IsEnum(LotStatut)

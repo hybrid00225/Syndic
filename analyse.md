@@ -1056,7 +1056,7 @@ Un prestataire abandonne un chantier	Intervention suspendue et suivi du litige
 Une copropriété change de devise	Traitement encadré, sans conversion historique destructive
 
 
-28. Les modules complémentaires qui peuvent différencier ZenAPI
+28. Les modules complémentaires qui peuvent différencier Syndic Alpha
 Au-delà des fonctionnalités classiques, je recommande d'étudier les domaines suivants.
 Module	Fonctionnalités
 Portail copropriétaire	Consultation des comptes, lots, documents et demandes
@@ -1081,10 +1081,10 @@ Gestion des contrôles réglementaires	Inspections, échéances et attestations
 Gestion des enquêtes	Sondages, consultations et satisfaction
 Gestion des statistiques	Indicateurs financiers, techniques et opérationnels
 
-29. Les règles de gestion spécifiques à l'architecture SaaS de ZenAPI
+29. Les règles de gestion spécifiques à l'architecture SaaS de Syndic Alpha
 Je considère cette partie comme aussi importante que les modules métier.
 
-Si ZenAPI doit être commercialisé auprès de plusieurs sociétés de syndic, il faut éviter de construire un système dans lequel chaque société possède une installation totalement différente.
+Si Syndic Alpha doit être commercialisé auprès de plusieurs sociétés de syndic, il faut éviter de construire un système dans lequel chaque société possède une installation totalement différente.
 
 Voici les règles à intégrer :
 1. Une plateforme peut héberger plusieurs sociétés de syndic.
@@ -1113,10 +1113,10 @@ Voici les règles à intégrer :
 24. La suspension d'un abonnement ne doit pas entraîner la suppression des données de la société.
 25. Les exports complets doivent être possibles pour garantir la portabilité des données.
 
-30. Comment organiser tout cela dans ZenAPI ?
+30. Comment organiser tout cela dans Syndic Alpha ?
 Je te recommande de structurer le logiciel en grands domaines fonctionnels plutôt que de créer une multitude de modules indépendants sans cohérence.
-Architecture fonctionnelle cible de ZenAPI
-ZENAPI – PLATEFORME SAAS
+Architecture fonctionnelle cible de Syndic Alpha
+SYNDIC ALPHA – PLATEFORME SAAS
 
 Multi-sociétés · Multi-agences · Multi-copropriétés · Multi-pays
 
@@ -1198,7 +1198,7 @@ P2	Énergie et compteurs	Avancée
 P2	Automatisation et analyses	Avancée
 
 32. Une dernière recommandation : construire un moteur de règles métier
-C'est probablement l'un des choix architecturaux les plus importants pour ZenAPI.
+C'est probablement l'un des choix architecturaux les plus importants pour Syndic Alpha.
 
 Ne programme pas directement dans le code des règles comme :
 - Un copropriétaire doit payer tous les trois mois.
@@ -1223,7 +1223,7 @@ Documents obligatoires	Selon juridiction
 
 Le moteur doit aussi gérer les versions et dates d'entrée en vigueur des règles. Une modification juridique ne doit pas recalculer rétroactivement les opérations déjà validées.
 
-Ce que je ferais maintenant pour ZenAPI
+Ce que je ferais maintenant pour Syndic Alpha
 Je transformerais ce référentiel en trois livrables techniques complémentaires :
 1. Catalogue des règles de gestion (BRD) : chaque règle possède un identifiant, une description, ses conditions, ses exceptions, ses contrôles et son résultat attendu.
 2. Spécifications fonctionnelles (SFD) : chaque module possède ses écrans, ses workflows, ses statuts, ses permissions et ses scénarios d'utilisation.

@@ -2,22 +2,54 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Eye, Pencil, Trash2, Printer, Download } from 'lucide-react';
+import { Eye, Pencil, Trash2 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useApi, useInvalidate } from '@/lib/query';
 import type { Batiment, CoproRef } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Ledger, Stat, Composition } from '@/components/ui/stat';
 import { SearchSelect } from '@/components/ui/select';
-import { Tooltip } from '@/components/ui/tooltip';
 import { useAlert, useConfirm } from '@/components/ui/confirm';
 import { PageLoader } from '@/components/ui/spinner';
 import { EmptyState, ErrorState } from '@/components/ui/states';
-import { Table, THead, Th, Td, Tr } from '@/components/ui/table';
-import { ListToolbar, Pagination, RowAction, RowActions, SearchInput, usePaged } from '@/components/ui/list';
+import { ColumnsMenu, DataTable, TableExport, useDataTable, type Column } from '@/components/ui/data-table';
+import { ListToolbar, RowAction, RowActions, SearchInput } from '@/components/ui/list';
 import { PageHeader } from '@/components/page-header';
-import { exportCsv } from '@/lib/csv';
 import { cn } from '@/lib/utils';
+
+const fiche = (b: Batiment) => `/coproprietes/${b.coproprieteId}?tab=batiments`;
+
+const COLUMNS: Column<Batiment>[] = [
+  {
+    id: 'nom',
+    header: 'Bâtiment',
+    required: true,
+    value: (b) => b.nom,
+    cell: (b) => (
+      <Link href={fiche(b)} className="font-medium underline-offset-4 hover:underline">
+        {b.nom}
+      </Link>
+    ),
+  },
+  {
+    id: 'copropriete',
+    header: 'Copropriété',
+    value: (b) => b.copropriete.nom,
+    cell: (b) => (
+      <Link href={`/coproprietes/${b.coproprieteId}`} className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
+        {b.copropriete.nom}
+      </Link>
+    ),
+  },
+  { id: 'niveaux', header: 'Niveaux', numeric: true, value: (b) => b._count.niveaux, cell: (b) => b._count.niveaux },
+  {
+    id: 'lots',
+    header: 'Lots',
+    numeric: true,
+    value: (b) => b._count.lots,
+    cell: (b) => <span className={cn(b._count.lots === 0 && 'text-warning')}>{b._count.lots}</span>,
+  },
+];
 
 const moyenne = (total: number, n: number) =>
   n ? (total / n).toLocaleString('fr-FR', { maximumFractionDigits: 1 }) : '0';
@@ -42,10 +74,16 @@ export default function BatimentsPage() {
           (!copro || b.coproprieteId === copro) &&
           (!sansLot || b._count.lots === 0),
       )
+      // Ordre de base (copropriété puis bâtiment) quand aucun tri n'est choisi.
       .sort((a, b) => a.copropriete.nom.localeCompare(b.copropriete.nom, 'fr') || a.nom.localeCompare(b.nom, 'fr'));
   }, [batiments, q, copro, sansLot]);
 
-  const paged = usePaged(filtered, 10, `${q}|${copro}|${sansLot}`);
+  const table = useDataTable({ id: 'batiments', rows: filtered, columns: COLUMNS, resetKey: `${q}|${copro}|${sansLot}` });
+  const filtres = [
+    q && `Recherche : « ${q} »`,
+    copro && `Copropriété : ${copros.find((c) => c.id === copro)?.nom ?? ''}`,
+    sansLot && 'Bâtiments sans lot',
+  ].filter(Boolean) as string[];
 
   if (isLoading) return <PageLoader label="Chargement des bâtiments…" />;
 
@@ -56,18 +94,7 @@ export default function BatimentsPage() {
       subtitle="Tous les bâtiments de votre portefeuille. Ils se créent depuis la fiche de leur copropriété."
       actions={
         batiments && batiments.length > 0 ? (
-          <>
-            <Tooltip label="Imprimer la liste filtrée" side="bottom">
-              <Button variant="secondary" onClick={() => window.print()}>
-                <Printer className="h-4 w-4" /> Imprimer
-              </Button>
-            </Tooltip>
-            <Tooltip label="Télécharger la liste filtrée (CSV, Excel)" side="bottom">
-              <Button variant="secondary" onClick={() => exporter()}>
-                <Download className="h-4 w-4" /> Exporter
-              </Button>
-            </Tooltip>
-          </>
+          <TableExport table={table} title="Bâtiments" filters={filtres} filename="batiments" />
         ) : undefined
       }
     />
@@ -113,14 +140,6 @@ export default function BatimentsPage() {
     setSansLot(false);
   };
 
-  function exporter() {
-    exportCsv(
-      'batiments.csv',
-      ['Bâtiment', 'Copropriété', 'Niveaux', 'Lots'],
-      filtered.map((b) => [b.nom, b.copropriete.nom, b._count.niveaux, b._count.lots]),
-    );
-  }
-
   const supprimer = async (b: Batiment) => {
     const ok = await confirm({
       title: `Supprimer « ${b.nom} » ?`,
@@ -137,8 +156,6 @@ export default function BatimentsPage() {
       alert('Suppression impossible', e instanceof Error ? e.message : 'Erreur inconnue.');
     }
   };
-
-  const fiche = (b: Batiment) => `/coproprietes/${b.coproprieteId}?tab=batiments`;
 
   return (
     <div className="space-y-6">
@@ -190,6 +207,7 @@ export default function BatimentsPage() {
           hasFilters={hasFilters}
           onReset={reset}
           count={filtered.length}
+          tools={<ColumnsMenu table={table} />}
         >
           <SearchSelect
             size="sm"
@@ -215,44 +233,18 @@ export default function BatimentsPage() {
             Aucun bâtiment ne correspond à ces critères.
           </EmptyState>
         ) : (
-          <Table footer={<Pagination {...paged} />}>
-            <THead>
-              <Th>Bâtiment</Th>
-              <Th>Copropriété</Th>
-              <Th numeric>Niveaux</Th>
-              <Th numeric>Lots</Th>
-              <Th className="no-print w-[1%]">
-                <span className="sr-only">Actions</span>
-              </Th>
-            </THead>
-            <tbody>
-              {paged.pageItems.map((b) => (
-                <Tr key={b.id} href={fiche(b)}>
-                  <Td>
-                    <Link href={fiche(b)} className="font-medium underline-offset-4 hover:underline">
-                      {b.nom}
-                    </Link>
-                  </Td>
-                  <Td>
-                    <Link href={`/coproprietes/${b.coproprieteId}`} className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
-                      {b.copropriete.nom}
-                    </Link>
-                  </Td>
-                  <Td numeric>{b._count.niveaux}</Td>
-                  <Td numeric className={cn(b._count.lots === 0 && 'text-warning')}>
-                    {b._count.lots}
-                  </Td>
-                  <Td>
-                    <RowActions>
-                      <RowAction label="Voir dans la copropriété" icon={Eye} href={fiche(b)} />
-                      <RowAction label="Gérer niveaux et lots" icon={Pencil} href={fiche(b)} />
-                      <RowAction label="Supprimer" icon={Trash2} danger onClick={() => supprimer(b)} />
-                    </RowActions>
-                  </Td>
-                </Tr>
-              ))}
-            </tbody>
-          </Table>
+          <DataTable
+            table={table}
+            rowKey={(b) => b.id}
+            rowHref={fiche}
+            rowActions={(b) => (
+              <RowActions>
+                <RowAction label="Voir dans la copropriété" icon={Eye} href={fiche(b)} />
+                <RowAction label="Gérer niveaux et lots" icon={Pencil} href={fiche(b)} />
+                <RowAction label="Supprimer" icon={Trash2} danger onClick={() => supprimer(b)} />
+              </RowActions>
+            )}
+          />
         )}
       </div>
     </div>

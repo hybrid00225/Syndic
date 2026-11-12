@@ -32,11 +32,17 @@ export class BatimentService {
   }
 
   // Vue globale : tous les bâtiments du syndic (+ compteurs).
-  findAllBySyndic(syndicId: string, coproprieteId?: string) {
+  findAllBySyndic(
+    syndicId: string,
+    coproprieteId?: string,
+    perimetre?: string[],
+  ) {
     return this.prisma.batiment.findMany({
       where: {
         copropriete: { syndicId },
         coproprieteId: coproprieteId || undefined,
+        // Non-admin : limité aux copropriétés où il a un rôle.
+        ...(perimetre ? { AND: [{ coproprieteId: { in: perimetre } }] } : {}),
       },
       select: {
         id: true,

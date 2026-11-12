@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service';
+import { BCRYPT_COUT } from './auth.service';
 import { CreateUserDto } from './dto/create-user.dto';
 
 @Injectable()
@@ -22,19 +23,17 @@ export class UserService {
     }
 
     // Les copropriétés des rôles doivent appartenir au syndic.
-    for (const r of dto.roles ?? []) {
-      const copro = await this.prisma.copropriete.findUnique({
-        where: { id: r.coproprieteId },
-        select: { syndicId: true },
+    const coproIds = [...new Set((dto.roles ?? []).map((r) => r.coproprieteId))];
+    if (coproIds.length) {
+      const trouvees = await this.prisma.copropriete.count({
+        where: { id: { in: coproIds }, syndicId },
       });
-      if (!copro || copro.syndicId !== syndicId) {
-        throw new BadRequestException(
-          `Copropriété ${r.coproprieteId} hors de votre syndic`,
-        );
+      if (trouvees !== coproIds.length) {
+        throw new BadRequestException('Une copropriété des rôles est hors de votre syndic');
       }
     }
 
-    const hash = await bcrypt.hash(dto.motDePasse, 10);
+    const hash = await bcrypt.hash(dto.motDePasse, BCRYPT_COUT);
     return this.prisma.user.create({
       data: {
         syndicId,

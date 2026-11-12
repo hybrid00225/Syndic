@@ -6,7 +6,9 @@ import {
   IsString,
   IsUUID,
   Min,
+  Max,
 } from 'class-validator';
+import { MONTANT_MAX } from '../../common/validation';
 import { MoyenPaiement, PaiementStatut } from '@prisma/client';
 
 export class CreatePaiementDto {
@@ -15,6 +17,7 @@ export class CreatePaiementDto {
 
   @IsInt()
   @Min(1)
+  @Max(MONTANT_MAX)
   montant: number; // entier (unité de la devise)
 
   @IsEnum(MoyenPaiement)

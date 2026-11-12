@@ -16,7 +16,10 @@ import { UpdateEquipementDto } from './dto/update-equipement.dto';
 import { QueryEquipementDto } from './dto/query-equipement.dto';
 import { ChangerEtatDto } from './dto/changer-etat.dto';
 import { CurrentUser, Roles } from '../../auth/decorators';
-import { AuthUser } from '../../auth/auth-user.interface';
+import {
+  AuthUser,
+  perimetreCoproprietes,
+} from '../../auth/auth-user.interface';
 
 @Controller()
 export class EquipementController {
@@ -28,7 +31,11 @@ export class EquipementController {
     @CurrentUser() user: AuthUser,
     @Query() query: QueryEquipementDto,
   ) {
-    return this.service.findAllBySyndic(user.syndicId, query);
+    return this.service.findAllBySyndic(
+      user.syndicId,
+      query,
+      perimetreCoproprietes(user),
+    );
   }
 
   @Roles(RoleType.GESTIONNAIRE)

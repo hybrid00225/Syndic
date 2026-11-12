@@ -155,9 +155,10 @@ export class CoproprieteService {
     });
   }
 
-  findAll(syndicId?: string) {
+  // Toujours filtré par syndic ; perimetre (non-admin) = copropriétés autorisées.
+  findAll(syndicId: string, perimetre?: string[]) {
     return this.prisma.copropriete.findMany({
-      where: syndicId ? { syndicId } : undefined,
+      where: { syndicId, ...(perimetre ? { id: { in: perimetre } } : {}) },
       orderBy: { dateCreation: 'desc' },
     });
   }

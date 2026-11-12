@@ -41,7 +41,7 @@ export class PaiementService {
         where: { idempotencyKey: dto.idempotencyKey },
       });
       if (existant) {
-        return existant;
+        return this.renvoyerSiMemeCopro(existant, coproprieteId);
       }
     }
 
@@ -69,7 +69,7 @@ export class PaiementService {
           where: { idempotencyKey: dto.idempotencyKey },
         });
         if (existant) {
-          return existant;
+          return this.renvoyerSiMemeCopro(existant, coproprieteId);
         }
       }
       throw e;
@@ -188,6 +188,18 @@ export class PaiementService {
         data: { statut: PaiementStatut.ANNULE },
       });
     });
+  }
+
+  // La clé d'idempotence est unique globalement : ne jamais renvoyer le
+  // paiement d'une autre copropriété (fuite inter-syndics).
+  private renvoyerSiMemeCopro<T extends { coproprieteId: string }>(
+    existant: T,
+    coproprieteId: string,
+  ): T {
+    if (existant.coproprieteId !== coproprieteId) {
+      throw new ConflictException("Clé d'idempotence déjà utilisée");
+    }
+    return existant;
   }
 
   private async sommeAffecteesPaiement(paiementId: string): Promise<bigint> {

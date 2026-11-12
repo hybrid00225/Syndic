@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Plus, Eye, Pencil, Archive, Printer, Download } from 'lucide-react';
+import { Plus, Eye, Pencil, Archive } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useApi, useInvalidate } from '@/lib/query';
 import type { Copropriete } from '@/lib/types';
@@ -11,35 +11,90 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Ledger, Stat, Composition, Ring, Tokens } from '@/components/ui/stat';
 import { SearchSelect } from '@/components/ui/select';
-import { Tooltip } from '@/components/ui/tooltip';
+import { CountryLabel, CountrySelect } from '@/components/ui/country';
 import { useAlert, useConfirm } from '@/components/ui/confirm';
 import { PageLoader } from '@/components/ui/spinner';
 import { EmptyState, ErrorState } from '@/components/ui/states';
-import { Table, THead, Th, Td, Tr } from '@/components/ui/table';
-import {
-  ListToolbar,
-  Pagination,
-  RowAction,
-  RowActions,
-  SearchInput,
-  usePaged,
-  type View,
-} from '@/components/ui/list';
+import { ColumnsMenu, DataTable, SortSelect, TableExport, useDataTable, type Column } from '@/components/ui/data-table';
+import { ListToolbar, Pagination, RowAction, RowActions, SearchInput, type View } from '@/components/ui/list';
 import { PageHeader } from '@/components/page-header';
-import { exportCsv } from '@/lib/csv';
 import { formatDate, STATUT_COPRO } from '@/lib/utils';
-import { PAYS, STATUTS_COPRO, STATUT_COPRO_TONE } from '@/lib/constants';
+import { LABELS, nomPays, STATUTS_COPRO, STATUT_COPRO_TONE } from '@/lib/constants';
 
 const statutTone = STATUT_COPRO_TONE;
 
-const SORT_OPTIONS: [string, string][] = [
-  ['recent', 'Plus récentes'],
-  ['ancien', 'Plus anciennes'],
-  ['nom', 'Nom (A→Z)'],
-  ['nom-desc', 'Nom (Z→A)'],
-];
+const date = (v: string | null) => (v ? new Date(v) : null);
 
-const paysLabel = (code: string) => PAYS.find((p) => p[0] === code)?.[1] ?? code;
+// Colonnes : les principales + les informations complémentaires de la fiche (masquées par défaut).
+const COLUMNS: Column<Copropriete>[] = [
+  {
+    id: 'nom',
+    header: 'Copropriété',
+    required: true,
+    value: (c) => c.nom,
+    cell: (c) => (
+      <>
+        <Link href={`/coproprietes/${c.id}`} className="font-medium underline-offset-4 hover:underline">
+          {c.nom}
+        </Link>
+        <p className="mt-0.5 text-2xs text-muted-foreground">
+          {[c.reference, c.adresse].filter(Boolean).join(' · ') || 'Adresse non renseignée'}
+        </p>
+      </>
+    ),
+  },
+  { id: 'reference', header: 'Référence', defaultHidden: true, value: (c) => c.reference, cell: (c) => c.reference ?? '—' },
+  { id: 'adresse', header: 'Adresse', defaultHidden: true, value: (c) => c.adresse, cell: (c) => c.adresse ?? '—' },
+  {
+    id: 'ensemble',
+    header: 'Ensemble immobilier',
+    defaultHidden: true,
+    value: (c) => c.ensembleImmobilier,
+    cell: (c) => c.ensembleImmobilier ?? '—',
+  },
+  { id: 'type', header: 'Type', defaultHidden: true, value: (c) => LABELS[c.type] ?? c.type, cell: (c) => LABELS[c.type] ?? c.type },
+  {
+    id: 'pays',
+    header: 'Pays',
+    value: (c) => nomPays(c.pays),
+    cell: (c) => <CountryLabel code={c.pays} />,
+  },
+  { id: 'devise', header: 'Devise', value: (c) => c.devise, cell: (c) => <span className="nums">{c.devise}</span> },
+  {
+    id: 'nature',
+    header: 'Nature du syndic',
+    defaultHidden: true,
+    value: (c) => LABELS[c.natureSyndic] ?? c.natureSyndic,
+    cell: (c) => LABELS[c.natureSyndic] ?? c.natureSyndic,
+  },
+  {
+    id: 'batiments',
+    header: 'Bâtiments',
+    numeric: true,
+    defaultHidden: true,
+    value: (c) => c.batiments?.length ?? 0,
+    cell: (c) => c.batiments?.length ?? 0,
+  },
+  {
+    id: 'statut',
+    header: 'Statut',
+    value: (c) => STATUT_COPRO[c.statut] ?? c.statut,
+    cell: (c) => <Badge tone={statutTone[c.statut] ?? 'neutral'}>{STATUT_COPRO[c.statut] ?? c.statut}</Badge>,
+  },
+  {
+    id: 'creee',
+    header: 'Créée le',
+    value: (c) => date(c.dateCreation),
+    cell: (c) => <span className="nums text-muted-foreground">{formatDate(c.dateCreation)}</span>,
+  },
+  {
+    id: 'exploitation',
+    header: 'Mise en exploitation',
+    defaultHidden: true,
+    value: (c) => date(c.dateMiseExploitation),
+    cell: (c) => <span className="nums text-muted-foreground">{c.dateMiseExploitation ? formatDate(c.dateMiseExploitation) : '—'}</span>,
+  },
+];
 
 export default function CoproprietesPage() {
   const confirm = useConfirm();
@@ -50,12 +105,11 @@ export default function CoproprietesPage() {
   const [q, setQ] = useState('');
   const [statut, setStatut] = useState('');
   const [pays, setPays] = useState('');
-  const [sort, setSort] = useState('recent');
 
   const filtered = useMemo(() => {
     if (!copros) return [];
     const needle = q.trim().toLowerCase();
-    const res = copros.filter(
+    return copros.filter(
       (c) =>
         (!needle ||
           c.nom.toLowerCase().includes(needle) ||
@@ -64,17 +118,21 @@ export default function CoproprietesPage() {
         (!statut || c.statut === statut) &&
         (!pays || c.pays === pays),
     );
-    res.sort((a, b) => {
-      if (sort === 'nom') return a.nom.localeCompare(b.nom, 'fr');
-      if (sort === 'nom-desc') return b.nom.localeCompare(a.nom, 'fr');
-      const da = +new Date(a.dateCreation);
-      const db = +new Date(b.dateCreation);
-      return sort === 'ancien' ? da - db : db - da;
-    });
-    return res;
-  }, [copros, q, statut, pays, sort]);
+  }, [copros, q, statut, pays]);
 
-  const paged = usePaged(filtered, 10, `${q}|${statut}|${pays}|${sort}`);
+  const table = useDataTable({
+    id: 'coproprietes',
+    rows: filtered,
+    columns: COLUMNS,
+    defaultSort: { id: 'creee', dir: 'desc' },
+    resetKey: `${q}|${statut}|${pays}`,
+  });
+  const paged = table.paged;
+  const filtres = [
+    q && `Recherche : « ${q} »`,
+    statut && `Statut : ${STATUT_COPRO[statut] ?? statut}`,
+    pays && `Pays : ${nomPays(pays)}`,
+  ].filter(Boolean) as string[];
 
   if (isLoading) return <PageLoader />;
 
@@ -86,16 +144,7 @@ export default function CoproprietesPage() {
       actions={
         copros && copros.length > 0 ? (
           <>
-            <Tooltip label="Imprimer la liste filtrée" side="bottom">
-              <Button variant="secondary" size="sm" onClick={() => window.print()}>
-                <Printer className="h-4 w-4" /> Imprimer
-              </Button>
-            </Tooltip>
-            <Tooltip label="Télécharger la liste filtrée (CSV, Excel)" side="bottom">
-              <Button variant="secondary" size="sm" onClick={() => exporter()}>
-                <Download className="h-4 w-4" /> Exporter
-              </Button>
-            </Tooltip>
+            <TableExport table={table} title="Copropriétés" filters={filtres} filename="coproprietes" />
             <Button asChild size="sm">
               <Link href="/coproprietes/nouvelle">
                 <Plus className="h-4 w-4" /> Nouvelle copropriété
@@ -147,30 +196,13 @@ export default function CoproprietesPage() {
   const cloturees = copros.filter((c) => c.statut === 'CLOTUREE').length;
   const inactives = copros.filter((c) => c.statut === 'INACTIVE').length;
   const devises = [...new Set(copros.map((c) => c.devise))];
-  const hasFilters = !!(q || statut || pays || sort !== 'recent');
+  const hasFilters = !!(q || statut || pays);
 
   const reset = () => {
     setQ('');
     setStatut('');
     setPays('');
-    setSort('recent');
   };
-
-  function exporter() {
-    exportCsv(
-      'coproprietes.csv',
-      ['Nom', 'Référence', 'Adresse', 'Pays', 'Devise', 'Statut', 'Créée le'],
-      filtered.map((c) => [
-        c.nom,
-        c.reference,
-        c.adresse,
-        paysLabel(c.pays),
-        c.devise,
-        STATUT_COPRO[c.statut] ?? c.statut,
-        formatDate(c.dateCreation),
-      ]),
-    );
-  }
 
   const archiver = async (c: Copropriete) => {
     const ok = await confirm({
@@ -257,10 +289,10 @@ export default function CoproprietesPage() {
           count={filtered.length}
           view={view}
           onViewChange={setView}
+          tools={view === 'table' ? <ColumnsMenu table={table} /> : <SortSelect table={table} />}
         >
           <SearchSelect size="sm" className="w-44" value={statut} onChange={setStatut} options={STATUTS_COPRO} allowEmpty emptyLabel="Tous les statuts" aria-label="Filtrer par statut" />
-          <SearchSelect size="sm" className="w-44" value={pays} onChange={setPays} options={PAYS} allowEmpty emptyLabel="Tous les pays" aria-label="Filtrer par pays" />
-          <SearchSelect size="sm" className="w-44" value={sort} onChange={setSort} options={SORT_OPTIONS} aria-label="Trier" />
+          <CountrySelect size="sm" className="w-48" value={pays} onChange={setPays} allowEmpty emptyLabel="Tous les pays" aria-label="Filtrer par pays" />
         </ListToolbar>
 
         {filtered.length === 0 ? (
@@ -275,39 +307,12 @@ export default function CoproprietesPage() {
             Aucune copropriété ne correspond à ces critères.
           </EmptyState>
         ) : view === 'table' ? (
-          <Table footer={<Pagination {...paged} />}>
-            <THead>
-              <Th>Copropriété</Th>
-              <Th>Pays</Th>
-              <Th>Devise</Th>
-              <Th>Statut</Th>
-              <Th>Créée le</Th>
-              <Th className="no-print">
-                <span className="sr-only">Actions</span>
-              </Th>
-            </THead>
-            <tbody>
-              {paged.pageItems.map((c) => (
-                <Tr key={c.id} href={`/coproprietes/${c.id}`}>
-                  <Td>
-                    <Link href={`/coproprietes/${c.id}`} className="font-medium hover:underline underline-offset-4">
-                      {c.nom}
-                    </Link>
-                    <p className="mt-0.5 text-2xs text-muted-foreground">
-                      {[c.reference, c.adresse].filter(Boolean).join(' · ') || 'Adresse non renseignée'}
-                    </p>
-                  </Td>
-                  <Td>{paysLabel(c.pays)}</Td>
-                  <Td className="nums">{c.devise}</Td>
-                  <Td>
-                    <Badge tone={statutTone[c.statut] ?? 'neutral'}>{STATUT_COPRO[c.statut] ?? c.statut}</Badge>
-                  </Td>
-                  <Td className="nums text-muted-foreground">{formatDate(c.dateCreation)}</Td>
-                  <Td>{actions(c)}</Td>
-                </Tr>
-              ))}
-            </tbody>
-          </Table>
+          <DataTable
+            table={table}
+            rowKey={(c) => c.id}
+            rowHref={(c) => `/coproprietes/${c.id}`}
+            rowActions={actions}
+          />
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {paged.pageItems.map((c) => (
@@ -324,7 +329,7 @@ export default function CoproprietesPage() {
                   <Badge tone={statutTone[c.statut] ?? 'neutral'}>{STATUT_COPRO[c.statut] ?? c.statut}</Badge>
                 </div>
                 <dl className="grid grid-cols-3 border-y border-border text-ui">
-                  <Meta label="Pays" value={paysLabel(c.pays)} />
+                  <Meta label="Pays" value={<CountryLabel code={c.pays} className="max-w-full" />} />
                   <Meta label="Devise" value={c.devise} />
                   <Meta label="Créée" value={formatDate(c.dateCreation)} />
                 </dl>
@@ -345,7 +350,7 @@ export default function CoproprietesPage() {
   );
 }
 
-function Meta({ label, value }: { label: string; value: string }) {
+function Meta({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="border-r border-border px-5 py-3 last:border-r-0">
       <dt className="text-2xs text-muted-foreground">{label}</dt>

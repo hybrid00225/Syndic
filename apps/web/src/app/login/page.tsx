@@ -1,11 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Eye, EyeOff, Check } from 'lucide-react';
+import { Check } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { Wordmark } from '@/components/wordmark';
 import { Spinner } from '@/components/ui/spinner';
+import { Button } from '@/components/ui/button';
+import { Field, Input, PasswordInput } from '@/components/ui/input';
+import { SearchSelect } from '@/components/ui/select';
+import { CountrySelect } from '@/components/ui/country';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Alert } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
 
 // Liste internationale (le produit n'est pas restreint à une région).
@@ -25,7 +31,7 @@ const PAYS = [
   ['CH', 'Suisse'],
   ['CA', 'Canada'],
   ['Autre', 'Autre'],
-];
+] as const;
 
 const steps = [
   { n: 1, title: 'Créez votre compte', desc: 'Votre syndic en 2 minutes.' },
@@ -33,15 +39,15 @@ const steps = [
   { n: 3, title: 'Appelez les fonds', desc: 'Encaissez et suivez les impayés.' },
 ];
 
-const field =
-  'h-11 w-full rounded-lg border border-white/10 bg-white/5 px-3.5 text-sm text-white placeholder:text-white/35 transition focus:border-emerald-500/60 focus:outline-none focus:ring-2 focus:ring-emerald-500/25';
-const labelCls = 'mb-1.5 block text-[13px] font-medium text-white/80';
+/** Même règle que l'API : 8 caractères minimum, au moins une lettre et un chiffre. */
+function motDePasseValide(v: string) {
+  return v.length >= 8 && /[A-Za-z]/.test(v) && /\d/.test(v);
+}
 
 export default function LoginPage() {
   const { login, register } = useAuth();
   const router = useRouter();
   const [mode, setMode] = useState<'login' | 'register'>('login');
-  const [showPwd, setShowPwd] = useState(false);
   const [remember, setRemember] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,23 +60,33 @@ export default function LoginPage() {
     syndicNom: '',
     pays: 'CI',
   });
-  const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
+  const set = (k: keyof typeof form, v: string) => setForm((f) => ({ ...f, [k]: v }));
+
+  // Lien « Créer mon espace » de la page d'accueil : /login?mode=register.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('mode') === 'register') setMode('register');
+  }, []);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setInfo(null);
+    if (mode === 'register' && !motDePasseValide(form.motDePasse)) {
+      setError('Le mot de passe doit contenir au moins 8 caractères, dont une lettre et un chiffre.');
+      return;
+    }
     setLoading(true);
     try {
+      const email = form.email.trim().toLowerCase();
       if (mode === 'login') {
-        await login(form.email, form.motDePasse, remember);
+        await login(email, form.motDePasse, remember);
       } else {
         await register(
           {
-            syndicNom: form.syndicNom,
+            syndicNom: form.syndicNom.trim(),
             pays: form.pays,
             nom: `${form.prenom} ${form.nom}`.trim(),
-            email: form.email,
+            email,
             motDePasse: form.motDePasse,
           },
           remember,
@@ -89,8 +105,14 @@ export default function LoginPage() {
     setInfo(msg);
   };
 
+  const basculer = () => {
+    setMode(mode === 'login' ? 'register' : 'login');
+    setError(null);
+    setInfo(null);
+  };
+
   return (
-    <div className="grid min-h-screen bg-[#0A0F0C] lg:grid-cols-2">
+    <div className="grid min-h-screen bg-background lg:grid-cols-2">
       {/* ---- Panneau marque (gauche) ---- */}
       <div className="relative hidden overflow-hidden p-10 lg:flex lg:flex-col lg:justify-center xl:p-14">
         {/* Fonds : dégradé + halos + grille de points */}
@@ -214,213 +236,152 @@ export default function LoginPage() {
       </div>
 
       {/* ---- Formulaire (droite) ---- */}
-      <div className="flex items-center justify-center p-6 sm:p-10">
+      <main className="flex items-center justify-center p-6 sm:p-10">
         <div className="w-full max-w-sm">
           <div className="mb-8 lg:hidden">
-            <Wordmark onDark />
+            <Wordmark />
           </div>
 
-          <h2 className="text-2xl font-semibold tracking-tight text-white">
+          <h2 className="font-display text-3xl font-medium tracking-tight">
             {mode === 'login' ? 'Connexion' : 'Créer un compte'}
           </h2>
-          <p className="mt-1.5 text-sm text-white/50">
+          <p className="mt-1.5 text-sm text-muted-foreground">
             {mode === 'login'
               ? 'Accédez à votre espace de gestion.'
               : 'Créez votre syndic et votre compte administrateur.'}
           </p>
 
-          {/* Social */}
-          <button
-            type="button"
+          <Button
+            variant="secondary"
+            size="lg"
+            className="mt-6 w-full"
             onClick={bientot('La connexion Google sera bientôt disponible.')}
-            className="mt-6 flex h-11 w-full items-center justify-center gap-2.5 rounded-lg border border-white/10 bg-white/5 text-sm font-medium text-white transition hover:bg-white/10"
           >
             <GoogleIcon />
             Continuer avec Google
-          </button>
+          </Button>
 
-          {/* Séparateur */}
-          <div className="my-5 flex items-center gap-3 text-xs text-white/40">
-            <div className="h-px flex-1 bg-white/10" />
-            Ou
-            <div className="h-px flex-1 bg-white/10" />
+          <div className="my-5 flex items-center gap-3 text-2xs text-muted-foreground">
+            <div className="h-px flex-1 bg-border" />
+            ou
+            <div className="h-px flex-1 bg-border" />
           </div>
 
           <form onSubmit={submit} className="space-y-4">
             {mode === 'register' && (
               <>
-                <div>
-                  <label className={labelCls}>Nom du syndic</label>
-                  <input
+                <Field label="Nom du syndic" required>
+                  <Input
                     required
-                    className={field}
+                    maxLength={120}
+                    autoComplete="organization"
                     value={form.syndicNom}
                     onChange={(e) => set('syndicNom', e.target.value)}
-                    placeholder="Ex. Prodestic Immobilier"
+                    placeholder="Ex. Résidences Horizon Gestion"
                   />
-                </div>
+                </Field>
                 <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className={labelCls}>Prénom</label>
-                    <input
+                  <Field label="Prénom" required>
+                    <Input
                       required
-                      className={field}
+                      maxLength={80}
+                      autoComplete="given-name"
                       value={form.prenom}
                       onChange={(e) => set('prenom', e.target.value)}
                       placeholder="Awa"
                     />
-                  </div>
-                  <div>
-                    <label className={labelCls}>Nom</label>
-                    <input
+                  </Field>
+                  <Field label="Nom" required>
+                    <Input
                       required
-                      className={field}
+                      maxLength={80}
+                      autoComplete="family-name"
                       value={form.nom}
                       onChange={(e) => set('nom', e.target.value)}
                       placeholder="Koné"
                     />
-                  </div>
+                  </Field>
                 </div>
-                <div>
-                  <label className={labelCls}>Pays</label>
-                  <select
-                    className={cn(field, 'cursor-pointer')}
-                    value={form.pays}
-                    onChange={(e) => set('pays', e.target.value)}
-                  >
-                    {PAYS.map(([code, nom]) => (
-                      <option key={code} value={code} className="text-neutral-900">
-                        {nom}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <Field label="Pays">
+                  <CountrySelect value={form.pays} onChange={(v) => set('pays', v)} options={PAYS} />
+                </Field>
               </>
             )}
 
-            <div>
-              <label className={labelCls}>Email</label>
-              <input
+            <Field label="Email" required>
+              <Input
                 type="email"
                 required
+                maxLength={254}
                 autoComplete="email"
-                className={field}
+                inputMode="email"
                 value={form.email}
                 onChange={(e) => set('email', e.target.value)}
                 placeholder="vous@exemple.ci"
               />
-            </div>
+            </Field>
 
-            <div>
-              <div className="flex items-center justify-between">
-                <label className={labelCls}>Mot de passe</label>
-                {mode === 'login' && (
-                  <button
-                    type="button"
+            <Field
+              label="Mot de passe"
+              required
+              hint={mode === 'register' ? 'Au moins 8 caractères, dont une lettre et un chiffre.' : undefined}
+              action={
+                mode === 'login' ? (
+                  <Button
+                    variant="link"
+                    className="text-ui"
                     onClick={bientot(
                       'Pour réinitialiser votre mot de passe, contactez l’administrateur de votre syndic.',
                     )}
-                    className="mb-1.5 text-[13px] font-medium text-emerald-400 hover:text-emerald-300"
                   >
                     Mot de passe oublié ?
-                  </button>
-                )}
-              </div>
-              <div className="relative">
-                <input
-                  type={showPwd ? 'text' : 'password'}
-                  required
-                  minLength={8}
-                  autoComplete={
-                    mode === 'login' ? 'current-password' : 'new-password'
-                  }
-                  className={cn(field, 'pr-11')}
-                  value={form.motDePasse}
-                  onChange={(e) => set('motDePasse', e.target.value)}
-                  placeholder="8 caractères minimum"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPwd((v) => !v)}
-                  aria-label={
-                    showPwd ? 'Masquer le mot de passe' : 'Afficher le mot de passe'
-                  }
-                  className="absolute right-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-white/45 transition hover:bg-white/10 hover:text-white/80"
-                >
-                  {showPwd ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
-                </button>
-              </div>
-              {mode === 'register' && (
-                <p className="mt-1.5 text-xs text-white/40">
-                  Au moins 8 caractères.
-                </p>
-              )}
-            </div>
+                  </Button>
+                ) : undefined
+              }
+            >
+              <PasswordInput
+                required
+                minLength={8}
+                maxLength={128}
+                autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                value={form.motDePasse}
+                onChange={(e) => set('motDePasse', e.target.value)}
+                placeholder="8 caractères minimum"
+              />
+            </Field>
 
             {mode === 'login' && (
-              <label className="flex cursor-pointer items-center gap-2 text-sm text-white/70">
-                <span
-                  onClick={() => setRemember((v) => !v)}
-                  className={cn(
-                    'flex h-4 w-4 items-center justify-center rounded border transition',
-                    remember
-                      ? 'border-emerald-500 bg-emerald-500 text-white'
-                      : 'border-white/20 bg-white/5',
-                  )}
-                >
-                  {remember && <Check className="h-3 w-3" strokeWidth={3} />}
-                </span>
-                Se souvenir de moi
-              </label>
+              <Checkbox
+                label="Se souvenir de moi"
+                checked={remember}
+                onChange={(e) => setRemember(e.target.checked)}
+              />
             )}
 
-            {error && (
-              <p className="rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-red-300">
-                {error}
-              </p>
-            )}
-            {info && (
-              <p className="rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200">
-                {info}
-              </p>
-            )}
+            {error && <Alert tone="danger">{error}</Alert>}
+            {info && <Alert tone="info">{info}</Alert>}
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-emerald-500 text-sm font-semibold text-emerald-950 transition hover:bg-emerald-400 active:scale-[0.99] disabled:opacity-60"
-            >
+            <Button type="submit" size="lg" className="w-full" disabled={loading}>
               {loading && <Spinner />}
               {mode === 'login' ? 'Se connecter' : 'Créer mon espace'}
-            </button>
+            </Button>
           </form>
 
-          <p className="mt-6 text-center text-sm text-white/50">
+          <p className="mt-6 text-center text-sm text-muted-foreground">
             {mode === 'login' ? 'Pas encore de compte ?' : 'Déjà un compte ?'}{' '}
-            <button
-              onClick={() => {
-                setMode(mode === 'login' ? 'register' : 'login');
-                setError(null);
-                setInfo(null);
-              }}
-              className="font-semibold text-emerald-400 hover:text-emerald-300"
-            >
+            <Button variant="link" className="font-semibold" onClick={basculer}>
               {mode === 'login' ? 'Créer un compte' : 'Se connecter'}
-            </button>
+            </Button>
           </p>
         </div>
-      </div>
+      </main>
     </div>
   );
 }
 
 function GoogleIcon() {
   return (
-    <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden>
+    <svg viewBox="0 0 48 48" className="h-4 w-4" aria-hidden>
       <path
         fill="#FFC107"
         d="M43.6 20.5H42V20H24v8h11.3C33.7 32.9 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.1 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.3-.4-3.5z"

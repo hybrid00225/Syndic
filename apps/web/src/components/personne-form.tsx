@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { User, Plus, Trash2, Contact } from 'lucide-react';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
+import { IconButton } from '@/components/ui/icon-button';
+import { FormError } from '@/components/ui/alert';
 import { Input, Label } from '@/components/ui/input';
 import { SearchSelect } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
@@ -178,23 +180,14 @@ export function PersonneForm({
                   onChange={(e) => setContact(i, 'libelle', e.target.value)}
                   placeholder="Libellé (perso…)"
                 />
-                <button
-                  type="button"
-                  onClick={() => removeContact(i)}
-                  className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-danger/10 hover:text-danger"
-                  aria-label="Retirer"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
+                <IconButton label="Retirer ce contact" icon={Trash2} tone="danger" onClick={() => removeContact(i)} />
               </div>
             ))}
           </div>
         )}
       </div>
 
-      {error && (
-        <p className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>
-      )}
+      <FormError error={error} />
 
       <div className="flex justify-end gap-2">
         <Button

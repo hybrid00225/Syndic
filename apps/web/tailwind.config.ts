@@ -32,6 +32,15 @@ const config: Config = {
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',
+        // Navigation (menu latéral / barre), teinte réglable dans les Paramètres.
+        nav: {
+          DEFAULT: 'hsl(var(--nav) / <alpha-value>)',
+          foreground: 'hsl(var(--nav-foreground) / <alpha-value>)',
+          muted: 'hsl(var(--nav-muted) / <alpha-value>)',
+          border: 'hsl(var(--nav-border) / <alpha-value>)',
+          hover: 'hsl(var(--nav-hover) / <alpha-value>)',
+          accent: 'hsl(var(--nav-accent) / <alpha-value>)',
+        },
       },
       // Trois courbures seulement : contrôles (md), surfaces (lg), pastilles (full).
       borderRadius: {

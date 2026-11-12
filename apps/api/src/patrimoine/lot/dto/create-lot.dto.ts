@@ -6,7 +6,9 @@ import {
   IsString,
   IsUUID,
   Min,
+  Max,
 } from 'class-validator';
+import { SUPERFICIE_MAX } from '../../../common/validation';
 import { LotType, LotStatut } from '@prisma/client';
 
 export class CreateLotDto {
@@ -24,6 +26,7 @@ export class CreateLotDto {
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0) // RG-06 : superficie ≥ 0
   @IsOptional()
+  @Max(SUPERFICIE_MAX)
   superficie?: number; // m² — PAS de l'argent
 
   @IsEnum(LotStatut)

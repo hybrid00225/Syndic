@@ -7,7 +7,9 @@ import {
   isValidElement,
   useContext,
   useId,
+  useState,
 } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // Contrôle sobre : filet, focus = filet encre vert + anneau 1px (pas de halo).
@@ -31,6 +33,37 @@ export const Input = forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTML
   },
 );
 Input.displayName = 'Input';
+
+/** Mot de passe avec bouton « afficher / masquer ». */
+export const PasswordInput = forwardRef<
+  HTMLInputElement,
+  Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type'>
+>(({ className, ...props }, ref) => {
+  const [visible, setVisible] = useState(false);
+  return (
+    <div className="relative">
+      <Input
+        ref={ref}
+        type={visible ? 'text' : 'password'}
+        autoCapitalize="none"
+        autoCorrect="off"
+        spellCheck={false}
+        className={cn('pr-11', className)}
+        {...props}
+      />
+      <button
+        type="button"
+        onClick={() => setVisible((v) => !v)}
+        aria-label={visible ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+        aria-pressed={visible}
+        className="absolute right-1.5 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        {visible ? <EyeOff aria-hidden className="h-4 w-4" /> : <Eye aria-hidden className="h-4 w-4" />}
+      </button>
+    </div>
+  );
+});
+PasswordInput.displayName = 'PasswordInput';
 
 export const Textarea = forwardRef<
   HTMLTextAreaElement,
@@ -74,10 +107,13 @@ export function Field({
   hint,
   error,
   required,
+  action,
   className,
   children,
 }: {
   label: React.ReactNode;
+  /** Élément aligné à droite du libellé (ex. « Mot de passe oublié ? »). */
+  action?: React.ReactNode;
   hint?: React.ReactNode;
   error?: string | null;
   required?: boolean;
@@ -89,14 +125,17 @@ export function Field({
   return (
     <FieldCtx.Provider value={{ id, describedBy: hintId }}>
       <div className={className}>
-        <Label>
-          {label}
-          {required && (
-            <span aria-hidden className="ml-0.5 text-danger">
-              *
-            </span>
-          )}
-        </Label>
+        <div className="flex items-baseline justify-between gap-3">
+          <Label>
+            {label}
+            {required && (
+              <span aria-hidden className="ml-0.5 text-danger">
+                *
+              </span>
+            )}
+          </Label>
+          {action && <div className="mb-1.5 text-ui">{action}</div>}
+        </div>
         {isValidElement(children) && error
           ? cloneElement(children as React.ReactElement<{ 'aria-invalid'?: boolean }>, {
               'aria-invalid': true,

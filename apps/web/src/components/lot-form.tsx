@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
+import { FormError } from '@/components/ui/alert';
 import { Input, Label } from '@/components/ui/input';
 import { SearchSelect } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
@@ -184,11 +185,7 @@ export function LotForm({
         </div>
       </div>
 
-      {error && (
-        <p className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">
-          {error}
-        </p>
-      )}
+      <FormError error={error} />
 
       <div className="flex justify-end gap-2">
         <Button

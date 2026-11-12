@@ -49,7 +49,7 @@ export function Tooltip({
         id={id}
         role="tooltip"
         className={cn(
-          'pointer-events-none absolute z-[70] w-max max-w-[240px] rounded-md bg-foreground px-2 py-1 text-2xs font-medium text-background opacity-0 transition-opacity delay-150 duration-100 group-hover/tt:opacity-100 group-focus-within/tt:opacity-100',
+          'pointer-events-none absolute z-[70] w-max max-w-[240px] rounded-md bg-foreground px-2 py-1 text-2xs font-medium text-background opacity-0 transition-opacity delay-150 duration-100 group-hover/tt:opacity-100 group-has-[:focus-visible]/tt:opacity-100',
           sideCls[side],
         )}
       >
