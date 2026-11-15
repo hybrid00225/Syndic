@@ -22,7 +22,7 @@ export interface Preferences {
 
 const DEFAULT_PREFERENCES: Preferences = {
   layout: 'sidebar',
-  navTone: 'default',
+  navTone: 'forest',
   font: 'hanken',
   display: 'serif',
   radius: 'default',

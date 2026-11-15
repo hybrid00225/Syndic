@@ -7,7 +7,8 @@ import { cn } from '@/lib/utils';
 
 /**
  * Navigation horizontale (disposition « Barre de navigation », grand écran).
- * Les sections sont séparées par un filet ; l'élément actif est souligné.
+ * Les sections sont séparées par un filet ; l'élément actif est souligné
+ * directement sur le filet inférieur de la barre (la liste le chevauche de 1 px).
  */
 export function TopNav() {
   const pathname = usePathname();
@@ -16,7 +17,7 @@ export function TopNav() {
       aria-label="Navigation principale"
       className="sticky top-16 z-20 hidden border-b border-nav-border bg-nav text-nav-foreground lg:block"
     >
-      <ul className="flex items-center gap-1 overflow-x-auto px-10">
+      <ul className="-mb-px flex items-center gap-1 overflow-x-auto px-10">
         {NAV_SECTIONS.map((section, si) =>
           section.items.map((item, ii) => {
             const active = isActive(pathname, item.href);
